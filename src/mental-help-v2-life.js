@@ -9,6 +9,10 @@ export const HEREDITY_UNKNOWN_PHRASE = "Нет объективных данны
 
 /** @typedef {{ who: string; siblingDegree?: string; line?: string; pathology: string[]; pathologyOther?: string }} HeredityCase */
 
+/** @typedef {{ specialist: string; customOther: string; reason: string; reasonUnknown: boolean }} ChildhoodVisit */
+
+const CHILDHOOD_SPECIALIST_CODES = new Set(["neuro", "psych", "endo", "custom"]);
+
 const WHO_OPTIONS = [
   ["mother", "Мама"],
   ["father", "Папа"],
@@ -23,6 +27,17 @@ const WHO_OPTIONS = [
 ];
 
 const WHO_CODES = new Set(WHO_OPTIONS.map(([v]) => v));
+
+/** Род в грамматике формулировки «наблюдался/наблюдалась» (по полу родственника). */
+function isRelativeFeminine(who) {
+  return (
+    who === "mother" ||
+    who === "sister" ||
+    who === "grandmother" ||
+    who === "aunt" ||
+    who === "niece"
+  );
+}
 
 const SIBLING_DEG_FEM = [
   ["rod_f", "родная"],
@@ -98,7 +113,7 @@ function describeRelativeForWord(who, deg, line) {
 function formatOneHeredityCaseForWord(c) {
   const rel = describeRelativeForWord(c.who, c.siblingDegree, c.line);
   const path = Array.isArray(c.pathology) ? c.pathology : [];
-  const bits = path.map(pathologyLabel).filter(Boolean);
+  const bits = path.map((code) => pathologyLabelForWord(code, c.who)).filter(Boolean);
   const o = String(c.pathologyOther ?? "").trim();
   if (o) bits.push(o);
   const p = bits.join(", ");
@@ -125,12 +140,15 @@ export function emptyLifeStructuredState() {
     earlyNoIssues: false,
     earlySpeechLate: false,
     earlySpeechAge: "",
+    earlySpeechAgeUnknown: false,
     earlyWalkLate: false,
     earlyWalkAge: "",
-    childhoodNeuro: false,
-    childhoodPsych: false,
-    childhoodEndo: false,
-    childhoodNone: false,
+    earlyWalkAgeUnknown: false,
+    earlyDontKnow: false,
+    /** @type {"" | "yes" | "no"} */
+    childhoodSpecialists: "",
+    /** @type {ChildhoodVisit[]} */
+    childhoodVisits: [],
     kindergarten: "",
     schoolStartAge: "",
     schoolPerformance: "",
@@ -205,6 +223,57 @@ function migrateLegacyHeredity(base, raw) {
   if (c) base.heredityCases = [c];
 }
 
+/** @param {unknown} raw @returns {ChildhoodVisit | null} */
+function normalizeChildhoodVisit(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const o = /** @type {Record<string, unknown>} */ (raw);
+  const sp = typeof o.specialist === "string" && CHILDHOOD_SPECIALIST_CODES.has(o.specialist) ? o.specialist : "neuro";
+  return {
+    specialist: sp,
+    customOther: typeof o.customOther === "string" ? o.customOther : "",
+    reason: typeof o.reason === "string" ? o.reason : "",
+    reasonUnknown: o.reasonUnknown === true,
+  };
+}
+
+/** @param {unknown} arr @returns {ChildhoodVisit[]} */
+function normalizeChildhoodVisits(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.map(normalizeChildhoodVisit).filter(Boolean);
+}
+
+/**
+ * Старый формат: чекбоксы по специалистам и «Не наблюдался».
+ * @param {Record<string, unknown>} base
+ * @param {Record<string, unknown>} raw
+ */
+function migrateLegacyChildhood(base, raw) {
+  const hasNew =
+    raw.childhoodSpecialists === "yes" ||
+    raw.childhoodSpecialists === "no" ||
+    Object.prototype.hasOwnProperty.call(raw, "childhoodVisits");
+  if (hasNew) return;
+  const none = raw.childhoodNone === true;
+  const neuro = raw.childhoodNeuro === true;
+  const psych = raw.childhoodPsych === true;
+  const endo = raw.childhoodEndo === true;
+  const any = neuro || psych || endo;
+  if (none && !any) {
+    base.childhoodSpecialists = "no";
+    base.childhoodVisits = [];
+    return;
+  }
+  if (any) {
+    base.childhoodSpecialists = "yes";
+    /** @type {ChildhoodVisit[]} */
+    const v = [];
+    if (neuro) v.push({ specialist: "neuro", customOther: "", reason: "", reasonUnknown: false });
+    if (psych) v.push({ specialist: "psych", customOther: "", reason: "", reasonUnknown: false });
+    if (endo) v.push({ specialist: "endo", customOther: "", reason: "", reasonUnknown: false });
+    base.childhoodVisits = v;
+  }
+}
+
 export function parseLifeStructuredString(jsonStr) {
   const base = emptyLifeStructuredState();
   let raw = {};
@@ -221,11 +290,21 @@ export function parseLifeStructuredString(jsonStr) {
       }
     } else if (k === "heredityCloseDraft") {
       base.heredityCloseDraft = raw.heredityCloseDraft === true;
+    } else if (k === "earlySpeechAgeUnknown" || k === "earlyWalkAgeUnknown" || k === "earlyDontKnow") {
+      base[k] = raw[k] === true;
+    } else if (k === "childhoodVisits") {
+      if (Object.prototype.hasOwnProperty.call(raw, "childhoodVisits")) {
+        base.childhoodVisits = normalizeChildhoodVisits(raw.childhoodVisits);
+      }
+    } else if (k === "childhoodSpecialists") {
+      const v = raw.childhoodSpecialists;
+      base.childhoodSpecialists = v === "yes" || v === "no" ? v : "";
     } else if (k in raw) {
       base[k] = raw[k];
     }
   }
   migrateLegacyHeredity(base, raw);
+  migrateLegacyChildhood(base, raw);
   return base;
 }
 
@@ -237,11 +316,29 @@ function pathologyLabel(code) {
     dep_anxiety: "тревожные расстройства",
     dep_suicide_done: "суицид (реализованный)",
     dep_suicide_attempt: "суицидальные попытки",
-    dep_psychiatrist: "наблюдалась у психиатра",
+    dep_psychiatrist: "наблюдался(ась) у психиатра",
     dep_dementia: "деменция",
     dep_addiction: "алкогольная зависимость, наркотическая зависимость",
   };
   return m[code] ?? code;
+}
+
+/** @param {string} who — код родственника из WHO_OPTIONS */
+function psychWordPhraseForWord(who) {
+  if (!who) return "наблюдался(ась) у психиатра";
+  return isRelativeFeminine(who) ? "наблюдалась у психиатра" : "наблюдался у психиатра";
+}
+
+/** Подпись пункта в форме (с заглавной буквы). */
+function psychiatristOptionUiLabel(who) {
+  if (!who) return "Наблюдение у психиатра";
+  return isRelativeFeminine(who) ? "Наблюдалась у психиатра" : "Наблюдался у психиатра";
+}
+
+/** @param {string} code @param {string} [who] */
+function pathologyLabelForWord(code, who) {
+  if (code === "dep_psychiatrist") return psychWordPhraseForWord(who);
+  return pathologyLabel(code);
 }
 
 function schoolPerfLabel(v) {
@@ -252,6 +349,94 @@ function schoolPerfLabel(v) {
     troechnik: "троечник",
   };
   return m[v] ?? v;
+}
+
+/** Глагол для блока «Рождение и семья» по полу пациента. @param {"male" | "female" | null} gender */
+function verbBornPastForBirthBlock(gender) {
+  if (gender === "male") return "Родился";
+  if (gender === "female") return "Родилась";
+  return "Родился(лась)";
+}
+
+/** @param {Record<string, unknown>} state @param {"male" | "female" | null} gender */
+function earlySpeechWordLine(state, gender) {
+  if (!state.earlySpeechLate) return null;
+  const phrase =
+    gender === "male"
+      ? "поздно начал говорить"
+      : gender === "female"
+        ? "поздно начала говорить"
+        : "поздно начал(а) говорить";
+  if (state.earlySpeechAgeUnknown === true) return `${phrase} (точный возраст неизвестен)`;
+  const a = String(state.earlySpeechAge ?? "").trim();
+  return a ? `${phrase} (возраст ${a})` : phrase;
+}
+
+/** @param {Record<string, unknown>} state @param {"male" | "female" | null} gender */
+function earlyWalkWordLine(state, gender) {
+  if (!state.earlyWalkLate) return null;
+  const phrase =
+    gender === "male"
+      ? "поздно начал ходить"
+      : gender === "female"
+        ? "поздно начала ходить"
+        : "поздно начал(а) ходить";
+  if (state.earlyWalkAgeUnknown === true) return `${phrase} (точный возраст неизвестен)`;
+  const a = String(state.earlyWalkAge ?? "").trim();
+  return a ? `${phrase} (возраст ${a})` : phrase;
+}
+
+/** @param {"male" | "female" | null} gender */
+function childhoodObservedVerbPast(gender) {
+  if (gender === "male") return "наблюдался";
+  if (gender === "female") return "наблюдалась";
+  return "наблюдался(ась)";
+}
+
+/** @param {"male" | "female" | null} gender */
+function childhoodNegativeVerbPast(gender) {
+  if (gender === "male") return "не наблюдался";
+  if (gender === "female") return "не наблюдалась";
+  return "не наблюдался(ась)";
+}
+
+/** @param {ChildhoodVisit} v */
+function childhoodVisitSpecialistPhraseForWord(v) {
+  const co = String(v.customOther ?? "").trim();
+  if (v.specialist === "custom") {
+    if (co) return `врача ${co}`;
+    return "врача (специализация не указана)";
+  }
+  if (v.specialist === "neuro") return "врача невролога";
+  if (v.specialist === "psych") return "врача психиатра";
+  if (v.specialist === "endo") return "врача эндокринолога";
+  return "врача невролога";
+}
+
+/** @param {ChildhoodVisit} v */
+function childhoodVisitClauseForWord(v) {
+  if (v.specialist === "custom" && !String(v.customOther ?? "").trim() && !v.reasonUnknown && !String(v.reason ?? "").trim()) {
+    return "";
+  }
+  const head = `у ${childhoodVisitSpecialistPhraseForWord(v)}`;
+  if (v.reasonUnknown === true) return `${head}, причину не знает`;
+  const r = String(v.reason ?? "").trim();
+  if (r) return `${head} по причине ${r}`;
+  return head;
+}
+
+/**
+ * @param {Record<string, unknown>} state
+ * @param {"male" | "female" | null} gender
+ */
+function formatChildhoodSpecialistsLineForWord(state, gender) {
+  const y = state.childhoodSpecialists;
+  if (y === "no") return `В детстве у специалистов ${childhoodNegativeVerbPast(gender)}.`;
+  if (y !== "yes") return "";
+  const list = Array.isArray(state.childhoodVisits) ? /** @type {ChildhoodVisit[]} */ (state.childhoodVisits) : [];
+  const clauses = list.map(childhoodVisitClauseForWord).filter(Boolean);
+  if (!clauses.length) return "";
+  return `В детстве ${childhoodObservedVerbPast(gender)} ${clauses.join(", ")}.`;
 }
 
 /**
@@ -270,27 +455,21 @@ export function formatLifeStructuredForWord(state, gender) {
     else lines.push("В семье отмечались психические расстройства (родственники и характер патологии не указаны).");
   }
 
-  if (state.birthFamily === "full") lines.push("Родился(лась) в полной семье.");
-  if (state.birthFamily === "incomplete") lines.push("Родился(лась) в неполной семье.");
+  const born = verbBornPastForBirthBlock(gender);
+  if (state.birthFamily === "full") lines.push(`${born} в полной семье.`);
+  if (state.birthFamily === "incomplete") lines.push(`${born} в неполной семье.`);
 
   const earlyBits = [];
   if (state.earlyNoIssues) earlyBits.push("раннее развитие без особенностей");
-  if (state.earlySpeechLate) {
-    const a = String(state.earlySpeechAge ?? "").trim();
-    earlyBits.push(a ? `поздно начал(а) говорить (возраст ${a})` : "поздно начал(а) говорить");
-  }
-  if (state.earlyWalkLate) {
-    const a = String(state.earlyWalkAge ?? "").trim();
-    earlyBits.push(a ? `поздно начал(а) ходить (возраст ${a})` : "поздно начал(а) ходить");
-  }
+  const sp = earlySpeechWordLine(state, gender);
+  if (sp) earlyBits.push(sp);
+  const wl = earlyWalkWordLine(state, gender);
+  if (wl) earlyBits.push(wl);
+  if (state.earlyDontKnow) earlyBits.push("сведения о раннем развитии неизвестны");
   if (earlyBits.length) lines.push(`Раннее развитие: ${earlyBits.join("; ")}.`);
 
-  const ch = [];
-  if (state.childhoodNeuro) ch.push("невролог");
-  if (state.childhoodPsych) ch.push("психиатр");
-  if (state.childhoodEndo) ch.push("эндокринолог");
-  if (state.childhoodNone) ch.push("не наблюдался");
-  if (ch.length) lines.push(`В детстве у специалистов: ${ch.join(", ")}.`);
+  const chLine = formatChildhoodSpecialistsLineForWord(state, gender);
+  if (chLine) lines.push(chLine);
 
   if (state.kindergarten === "yes") lines.push("Детский сад посещал(а).");
   if (state.kindergarten === "no") lines.push("Детский сад не посещал(а).");
@@ -326,7 +505,7 @@ const PATHOLOGY_OPTIONS = [
   ["dep_anxiety", "Тревожные расстройства"],
   ["dep_suicide_done", "Суицид (реализованный)"],
   ["dep_suicide_attempt", "Суицидальные попытки"],
-  ["dep_psychiatrist", "Наблюдалась у психиатра"],
+  ["dep_psychiatrist", "Наблюдение у психиатра"],
   ["dep_dementia", "Деменция"],
 ];
 
@@ -564,7 +743,14 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
     cb.type = "checkbox";
     cb.dataset.hPathDraft = code;
     labEl.appendChild(cb);
-    labEl.appendChild(document.createTextNode(` ${lab}`));
+    if (code === "dep_psychiatrist") {
+      const span = document.createElement("span");
+      span.id = "mh-life-psychiatrist-option-text";
+      span.textContent = ` ${psychiatristOptionUiLabel("")}`;
+      labEl.appendChild(span);
+    } else {
+      labEl.appendChild(document.createTextNode(` ${lab}`));
+    }
     fsPath.appendChild(labEl);
   });
   const otherL = document.createElement("label");
@@ -584,20 +770,21 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   btnAdd.type = "button";
   btnAdd.className = "mh-life-add-case";
   btnAdd.textContent = "Добавить ещё";
-  const btnNoMore = document.createElement("button");
-  btnNoMore.type = "button";
-  btnNoMore.className = "mh-life-heredity-no-more";
-  btnNoMore.textContent = "Больше не было";
-  const finishLab = document.createElement("label");
-  finishLab.className = "mh-life-heredity-finish-label";
-  const finishCb = document.createElement("input");
-  finishCb.type = "checkbox";
-  finishCb.id = "mh-life-heredity-close-cb";
-  finishLab.appendChild(finishCb);
-  finishLab.appendChild(document.createTextNode(" Родственников больше не было"));
+  const btnFinish = document.createElement("button");
+  btnFinish.type = "button";
+  btnFinish.className = "mh-life-heredity-icon-btn mh-life-heredity-icon-btn--ok";
+  btnFinish.textContent = "✓";
+  btnFinish.setAttribute("aria-label", "Сохранить текущий случай в список и завершить перечисление");
+  btnFinish.title = "Сохранить текущий выбор в список и завершить перечисление";
+  const btnClearDraft = document.createElement("button");
+  btnClearDraft.type = "button";
+  btnClearDraft.className = "mh-life-heredity-icon-btn mh-life-heredity-icon-btn--clear";
+  btnClearDraft.textContent = "✗";
+  btnClearDraft.setAttribute("aria-label", "Очистить форму");
+  btnClearDraft.title = "Очистить форму";
   addRow.appendChild(btnAdd);
-  addRow.appendChild(btnNoMore);
-  addRow.appendChild(finishLab);
+  addRow.appendChild(btnFinish);
+  addRow.appendChild(btnClearDraft);
   draftWrap.appendChild(addRow);
 
   yesBlock.appendChild(draftWrap);
@@ -612,28 +799,300 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
     renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, gender, nextWizardBtn);
   }
 
-  btnNoMore.addEventListener("click", () => setHeredityCloseDraft(true));
-  finishCb.addEventListener("change", () => {
-    if (finishCb.checked) setHeredityCloseDraft(true);
-  });
+  function resetHeredityDraftForm() {
+    if (whoSel instanceof HTMLSelectElement) whoSel.value = "";
+    syncHeredityDraftUi();
+    yesBlock.querySelectorAll("input[data-h-path-draft]").forEach((el) => {
+      if (el instanceof HTMLInputElement) el.checked = false;
+    });
+    yesBlock.querySelectorAll('input[name="mh-life-draft-line"]').forEach((el) => {
+      if (el instanceof HTMLInputElement) el.checked = false;
+    });
+    const oi = yesBlock.querySelector("#mh-life-draft-pathology-other");
+    if (oi instanceof HTMLInputElement) oi.value = "";
+  }
+
+  btnClearDraft.addEventListener("click", () => resetHeredityDraftForm());
   btnReopenDraft.addEventListener("click", () => setHeredityCloseDraft(false));
 
   const fsB2 = fieldset("Блок 2. Рождение и семья");
-  fsB2.appendChild(radioRow("mh-life-birth", "full", "Родился/лась в полной семье", state.birthFamily === "full"));
-  fsB2.appendChild(radioRow("mh-life-birth", "incomplete", "Родился/лась в неполной семье", state.birthFamily === "incomplete"));
+  const bornLabel = verbBornPastForBirthBlock(gender);
+  fsB2.appendChild(radioRow("mh-life-birth", "full", `${bornLabel} в полной семье`, state.birthFamily === "full"));
+  fsB2.appendChild(radioRow("mh-life-birth", "incomplete", `${bornLabel} в неполной семье`, state.birthFamily === "incomplete"));
   contentEl.appendChild(fsB2);
 
   const fsB3 = fieldset("Блок 3. Раннее развитие (можно несколько)");
   fsB3.appendChild(mkCheck("mh-life-early-norm", "Без особенностей", state.earlyNoIssues));
-  fsB3.appendChild(mkCheckWithAge("mh-life-early-speech", "Начал поздно говорить", "mh-life-early-speech-age", state.earlySpeechLate, state.earlySpeechAge));
-  fsB3.appendChild(mkCheckWithAge("mh-life-early-walk", "Начал поздно ходить", "mh-life-early-walk-age", state.earlyWalkLate, state.earlyWalkAge));
+
+  const speechBlock = document.createElement("div");
+  speechBlock.className = "mh-life-early-block";
+  const speechLab = document.createElement("label");
+  speechLab.className = "mh-life-check";
+  const speechCb = document.createElement("input");
+  speechCb.type = "checkbox";
+  speechCb.id = "mh-life-early-speech";
+  speechCb.checked = Boolean(state.earlySpeechLate);
+  speechLab.appendChild(speechCb);
+  speechLab.appendChild(document.createTextNode(" Начал поздно говорить"));
+  speechBlock.appendChild(speechLab);
+  const speechSub = document.createElement("div");
+  speechSub.id = "mh-life-early-speech-sub";
+  speechSub.className = "mh-life-early-sub";
+  speechSub.hidden = !state.earlySpeechLate;
+  const speechAgeRow = document.createElement("div");
+  speechAgeRow.className = "mh-life-early-age-row";
+  speechAgeRow.appendChild(document.createTextNode("Возраст (лет): "));
+  const speechAgeInp = document.createElement("input");
+  speechAgeInp.type = "text";
+  speechAgeInp.inputMode = "numeric";
+  speechAgeInp.className = "mh-life-text mh-life-text--narrow";
+  speechAgeInp.id = "mh-life-early-speech-age";
+  speechAgeInp.placeholder = "например, 2";
+  speechAgeInp.value = state.earlySpeechAgeUnknown ? "" : String(state.earlySpeechAge ?? "");
+  speechAgeInp.disabled = Boolean(state.earlySpeechAgeUnknown);
+  speechAgeRow.appendChild(speechAgeInp);
+  speechSub.appendChild(speechAgeRow);
+  const speechUnLab = document.createElement("label");
+  speechUnLab.className = "mh-life-check mh-life-early-unknown-lab";
+  const speechUn = document.createElement("input");
+  speechUn.type = "checkbox";
+  speechUn.id = "mh-life-early-speech-age-unknown";
+  speechUn.checked = Boolean(state.earlySpeechAgeUnknown);
+  speechUnLab.appendChild(speechUn);
+  speechUnLab.appendChild(document.createTextNode(" Не знаю точный возраст"));
+  speechSub.appendChild(speechUnLab);
+  speechBlock.appendChild(speechSub);
+  fsB3.appendChild(speechBlock);
+
+  speechCb.addEventListener("change", () => {
+    speechSub.hidden = !speechCb.checked;
+    if (!speechCb.checked) {
+      speechUn.checked = false;
+      speechAgeInp.disabled = false;
+      speechAgeInp.value = "";
+    }
+  });
+  speechUn.addEventListener("change", () => {
+    speechAgeInp.disabled = speechUn.checked;
+    if (speechUn.checked) speechAgeInp.value = "";
+  });
+
+  const walkBlock = document.createElement("div");
+  walkBlock.className = "mh-life-early-block";
+  const walkLab = document.createElement("label");
+  walkLab.className = "mh-life-check";
+  const walkCb = document.createElement("input");
+  walkCb.type = "checkbox";
+  walkCb.id = "mh-life-early-walk";
+  walkCb.checked = Boolean(state.earlyWalkLate);
+  walkLab.appendChild(walkCb);
+  walkLab.appendChild(document.createTextNode(" Начал поздно ходить"));
+  walkBlock.appendChild(walkLab);
+  const walkSub = document.createElement("div");
+  walkSub.id = "mh-life-early-walk-sub";
+  walkSub.className = "mh-life-early-sub";
+  walkSub.hidden = !state.earlyWalkLate;
+  const walkAgeRow = document.createElement("div");
+  walkAgeRow.className = "mh-life-early-age-row";
+  walkAgeRow.appendChild(document.createTextNode("Возраст (лет): "));
+  const walkAgeInp = document.createElement("input");
+  walkAgeInp.type = "text";
+  walkAgeInp.inputMode = "numeric";
+  walkAgeInp.className = "mh-life-text mh-life-text--narrow";
+  walkAgeInp.id = "mh-life-early-walk-age";
+  walkAgeInp.placeholder = "например, 1,5";
+  walkAgeInp.value = state.earlyWalkAgeUnknown ? "" : String(state.earlyWalkAge ?? "");
+  walkAgeInp.disabled = Boolean(state.earlyWalkAgeUnknown);
+  walkAgeRow.appendChild(walkAgeInp);
+  walkSub.appendChild(walkAgeRow);
+  const walkUnLab = document.createElement("label");
+  walkUnLab.className = "mh-life-check mh-life-early-unknown-lab";
+  const walkUn = document.createElement("input");
+  walkUn.type = "checkbox";
+  walkUn.id = "mh-life-early-walk-age-unknown";
+  walkUn.checked = Boolean(state.earlyWalkAgeUnknown);
+  walkUnLab.appendChild(walkUn);
+  walkUnLab.appendChild(document.createTextNode(" Не знаю точный возраст"));
+  walkSub.appendChild(walkUnLab);
+  walkBlock.appendChild(walkSub);
+  fsB3.appendChild(walkBlock);
+
+  walkCb.addEventListener("change", () => {
+    walkSub.hidden = !walkCb.checked;
+    if (!walkCb.checked) {
+      walkUn.checked = false;
+      walkAgeInp.disabled = false;
+      walkAgeInp.value = "";
+    }
+  });
+  walkUn.addEventListener("change", () => {
+    walkAgeInp.disabled = walkUn.checked;
+    if (walkUn.checked) walkAgeInp.value = "";
+  });
+
+  fsB3.appendChild(mkCheck("mh-life-early-dont-know", "Не знаю", state.earlyDontKnow));
   contentEl.appendChild(fsB3);
 
-  const fsB4 = fieldset("Блок 4. Наблюдение у специалистов в детстве");
-  fsB4.appendChild(mkCheck("mh-life-ch-neuro", "Врач невролог", state.childhoodNeuro));
-  fsB4.appendChild(mkCheck("mh-life-ch-psych", "Врач психиатр", state.childhoodPsych));
-  fsB4.appendChild(mkCheck("mh-life-ch-endo", "Врач эндокринолог", state.childhoodEndo));
-  fsB4.appendChild(mkCheck("mh-life-ch-none", "Не наблюдался", state.childhoodNone));
+  const fsB4 = fieldset("Блок 4. Наблюдались ли вы у специалистов в детстве?");
+  fsB4.appendChild(radioRow("mh-life-childhood", "yes", "Да", state.childhoodSpecialists === "yes"));
+  fsB4.appendChild(radioRow("mh-life-childhood", "no", "Нет", state.childhoodSpecialists === "no"));
+
+  const chYesWrap = document.createElement("div");
+  chYesWrap.id = "mh-life-childhood-yes-wrap";
+  chYesWrap.className = "mh-life-childhood-yes-wrap";
+  chYesWrap.hidden = state.childhoodSpecialists !== "yes";
+
+  const visitsHint = document.createElement("p");
+  visitsHint.className = "mh-life-hint";
+  visitsHint.textContent =
+    "Для каждого специалиста выберите врача из списка или «Свой вариант», укажите причину наблюдения либо отметьте «Не знаю причину».";
+  chYesWrap.appendChild(visitsHint);
+
+  const visitsList = document.createElement("div");
+  visitsList.id = "mh-life-childhood-visits-list";
+  visitsList.className = "mh-life-childhood-visits-list";
+
+  const visitStates = /** @type {ChildhoodVisit[]} */ (
+    state.childhoodSpecialists === "yes"
+      ? Array.isArray(state.childhoodVisits) && state.childhoodVisits.length
+        ? state.childhoodVisits
+        : [{ specialist: "neuro", customOther: "", reason: "", reasonUnknown: false }]
+      : []
+  );
+
+  function reflowChildhood(mutator) {
+    readLifeStructuredFromDom(contentEl, answers);
+    const st = parseLifeStructuredString(answers[LIFE_STRUCTURED_ID]);
+    mutator(st);
+    answers[LIFE_STRUCTURED_ID] = JSON.stringify(st);
+    renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, gender, nextWizardBtn);
+  }
+
+  /** @param {ChildhoodVisit} v @param {number} idx @param {number} total */
+  function appendChildhoodVisitRow(v, idx, total) {
+    const row = document.createElement("div");
+    row.className = "mh-life-childhood-visit";
+    row.dataset.index = String(idx);
+
+    const rowTitle = document.createElement("p");
+    rowTitle.className = "mh-life-childhood-visit-title";
+    rowTitle.textContent = `Специалист ${idx + 1}`;
+    row.appendChild(rowTitle);
+
+    const specRow = document.createElement("div");
+    specRow.className = "mh-life-row";
+    specRow.appendChild(document.createTextNode("Врач: "));
+    const specSel = document.createElement("select");
+    specSel.className = "mh-life-select mh-life-ch-visit-specialist";
+    [
+      ["neuro", "Врач невролог"],
+      ["psych", "Врач психиатр"],
+      ["endo", "Врач эндокринолог"],
+      ["custom", "Свой вариант"],
+    ].forEach(([val, lab]) => {
+      const o = document.createElement("option");
+      o.value = val;
+      o.textContent = lab;
+      if (v.specialist === val) o.selected = true;
+      specSel.appendChild(o);
+    });
+    specRow.appendChild(specSel);
+    row.appendChild(specRow);
+
+    const customWrap = document.createElement("div");
+    customWrap.className = "mh-life-childhood-custom-wrap";
+    const customLab = document.createElement("label");
+    customLab.className = "mh-life-row";
+    customLab.appendChild(document.createTextNode("Укажите врача (как в тексте документа, родительный падеж): "));
+    const customInp = document.createElement("input");
+    customInp.type = "text";
+    customInp.className = "mh-life-text mh-life-ch-visit-custom";
+    customInp.placeholder = "например: ортопеда, логопеда";
+    customInp.value = String(v.customOther ?? "");
+    customLab.appendChild(customInp);
+    customWrap.appendChild(customLab);
+    customWrap.hidden = v.specialist !== "custom";
+    row.appendChild(customWrap);
+
+    specSel.addEventListener("change", () => {
+      customWrap.hidden = specSel.value !== "custom";
+      if (specSel.value !== "custom" && customInp instanceof HTMLInputElement) customInp.value = "";
+    });
+
+    const reasonRow = document.createElement("div");
+    reasonRow.className = "mh-life-childhood-reason-row";
+    const reasonLab = document.createElement("label");
+    reasonLab.appendChild(document.createTextNode("По какой причине: "));
+    const reasonInp = document.createElement("input");
+    reasonInp.type = "text";
+    reasonInp.className = "mh-life-text mh-life-ch-visit-reason";
+    reasonInp.disabled = Boolean(v.reasonUnknown);
+    reasonInp.value = v.reasonUnknown ? "" : String(v.reason ?? "");
+    reasonLab.appendChild(reasonInp);
+    reasonRow.appendChild(reasonLab);
+    row.appendChild(reasonRow);
+
+    const unLab = document.createElement("label");
+    unLab.className = "mh-life-check mh-life-early-unknown-lab";
+    const unCb = document.createElement("input");
+    unCb.type = "checkbox";
+    unCb.className = "mh-life-ch-visit-reason-unknown";
+    unCb.checked = Boolean(v.reasonUnknown);
+    unLab.appendChild(unCb);
+    unLab.appendChild(document.createTextNode(" Не знаю причину"));
+    row.appendChild(unLab);
+
+    unCb.addEventListener("change", () => {
+      reasonInp.disabled = unCb.checked;
+      if (unCb.checked) reasonInp.value = "";
+    });
+
+    const actions = document.createElement("div");
+    actions.className = "mh-life-childhood-visit-actions";
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "mh-life-heredity-remove";
+    delBtn.textContent = "Удалить";
+    delBtn.hidden = total <= 1;
+    delBtn.addEventListener("click", () => {
+      reflowChildhood((st) => {
+        const arr = normalizeChildhoodVisits(st.childhoodVisits);
+        arr.splice(idx, 1);
+        st.childhoodVisits = arr.length ? arr : [{ specialist: "neuro", customOther: "", reason: "", reasonUnknown: false }];
+      });
+    });
+    actions.appendChild(delBtn);
+    row.appendChild(actions);
+
+    visitsList.appendChild(row);
+  }
+
+  visitStates.forEach((v, idx) => appendChildhoodVisitRow(v, idx, visitStates.length));
+
+  chYesWrap.appendChild(visitsList);
+
+  const addChBtn = document.createElement("button");
+  addChBtn.type = "button";
+  addChBtn.className = "mh-life-add-case";
+  addChBtn.textContent = "Добавить специалиста";
+  addChBtn.addEventListener("click", () => {
+    reflowChildhood((st) => {
+      const arr = normalizeChildhoodVisits(st.childhoodVisits);
+      arr.push({ specialist: "neuro", customOther: "", reason: "", reasonUnknown: false });
+      st.childhoodVisits = arr;
+    });
+  });
+  chYesWrap.appendChild(addChBtn);
+
+  fsB4.appendChild(chYesWrap);
+
+  fsB4.querySelectorAll('input[name="mh-life-childhood"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const inp = contentEl.querySelector('input[name="mh-life-childhood"]:checked');
+      chYesWrap.hidden = !(inp instanceof HTMLInputElement && inp.value === "yes");
+    });
+  });
+
   contentEl.appendChild(fsB4);
 
   const fsB5 = fieldset("Блок 5. Детский сад (ДДУ)");
@@ -748,11 +1207,19 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
     }
   }
 
+  function updatePsychiatristDraftLabel() {
+    const span = draftWrap.querySelector("#mh-life-psychiatrist-option-text");
+    if (!span) return;
+    const who = whoSel instanceof HTMLSelectElement ? whoSel.value.trim() : "";
+    span.textContent = ` ${psychiatristOptionUiLabel(who)}`;
+  }
+
   function syncHeredityDraftUi() {
     const who = whoSel instanceof HTMLSelectElement ? whoSel.value.trim() : "";
     fsSib.hidden = !needsSiblingDegree(who);
     repopulateSiblingDeg(who);
     syncHeredityLineRowOnly();
+    updatePsychiatristDraftLabel();
   }
 
   whoSel.addEventListener("change", () => {
@@ -765,26 +1232,61 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
     el.addEventListener("change", () => syncHeredityLineRowOnly());
   });
 
-  btnAdd.addEventListener("click", () => {
-    readLifeStructuredFromDom(contentEl, answers);
-    const draft = readHeredityDraftFromDom(yesBlock);
+  /** @param {HeredityCase} draft @returns {{ err: string | null; record: HeredityCase | null }} */
+  function draftToCaseOrError(draft) {
     const err = validateHeredityDraft(draft);
-    if (err) {
-      window.alert(err);
-      return;
-    }
-    const st = parseLifeStructuredString(answers[LIFE_STRUCTURED_ID]);
-    if (!Array.isArray(st.heredityCases)) st.heredityCases = [];
+    if (err) return { err, record: null };
     /** @type {HeredityCase} */
-    const toSave = {
+    const record = {
       who: draft.who,
       pathology: [...draft.pathology],
       pathologyOther: String(draft.pathologyOther ?? "").trim(),
     };
-    if (needsSiblingDegree(draft.who) && draft.siblingDegree) toSave.siblingDegree = draft.siblingDegree;
-    if (needsLine(draft.who, toSave.siblingDegree) && (draft.line === "maternal" || draft.line === "paternal")) toSave.line = draft.line;
-    st.heredityCases.push(toSave);
+    if (needsSiblingDegree(draft.who) && draft.siblingDegree) record.siblingDegree = draft.siblingDegree;
+    if (needsLine(draft.who, record.siblingDegree) && (draft.line === "maternal" || draft.line === "paternal")) record.line = draft.line;
+    return { err: null, record };
+  }
+
+  /** @param {HeredityCase} draft */
+  function isHeredityDraftEmpty(draft) {
+    return (
+      !String(draft.who ?? "").trim() &&
+      !(Array.isArray(draft.pathology) && draft.pathology.length) &&
+      !String(draft.pathologyOther ?? "").trim()
+    );
+  }
+
+  btnAdd.addEventListener("click", () => {
+    readLifeStructuredFromDom(contentEl, answers);
+    const draft = readHeredityDraftFromDom(yesBlock);
+    const { err, record } = draftToCaseOrError(draft);
+    if (err || !record) {
+      window.alert(err || "Не удалось сохранить.");
+      return;
+    }
+    const st = parseLifeStructuredString(answers[LIFE_STRUCTURED_ID]);
+    if (!Array.isArray(st.heredityCases)) st.heredityCases = [];
+    st.heredityCases.push(record);
     st.heredityCloseDraft = false;
+    answers[LIFE_STRUCTURED_ID] = JSON.stringify(st);
+    renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, gender, nextWizardBtn);
+  });
+
+  btnFinish.addEventListener("click", () => {
+    readLifeStructuredFromDom(contentEl, answers);
+    const draft = readHeredityDraftFromDom(yesBlock);
+    const { err, record } = draftToCaseOrError(draft);
+    const st = parseLifeStructuredString(answers[LIFE_STRUCTURED_ID]);
+    if (!Array.isArray(st.heredityCases)) st.heredityCases = [];
+
+    if (record) {
+      st.heredityCases.push(record);
+    } else if (err && !isHeredityDraftEmpty(draft)) {
+      window.alert(err);
+      return;
+    }
+
+    st.heredityCloseDraft = true;
     answers[LIFE_STRUCTURED_ID] = JSON.stringify(st);
     renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, gender, nextWizardBtn);
   });
@@ -813,29 +1315,6 @@ function mkCheck(id, label, checked) {
   lab.appendChild(cb);
   lab.appendChild(document.createTextNode(` ${label}`));
   return lab;
-}
-
-function mkCheckWithAge(cbId, label, ageId, checked, ageVal) {
-  const wrap = document.createElement("div");
-  wrap.className = "mh-life-row";
-  const lab = document.createElement("label");
-  lab.className = "mh-life-check";
-  const cb = document.createElement("input");
-  cb.type = "checkbox";
-  cb.id = cbId;
-  cb.checked = Boolean(checked);
-  lab.appendChild(cb);
-  lab.appendChild(document.createTextNode(` ${label} `));
-  const age = document.createElement("input");
-  age.type = "text";
-  age.inputMode = "numeric";
-  age.className = "mh-life-text mh-life-text--narrow";
-  age.id = ageId;
-  age.placeholder = "возраст";
-  age.value = String(ageVal ?? "");
-  lab.appendChild(age);
-  wrap.appendChild(lab);
-  return wrap;
 }
 
 function subEdu(title, prefix, state) {
@@ -874,6 +1353,29 @@ function radioRowStatic(name, value, label, checked) {
   return lab;
 }
 
+/** @param {HTMLElement} root @returns {ChildhoodVisit[]} */
+function readChildhoodVisitsFromDom(root) {
+  const out = /** @type {ChildhoodVisit[]} */ ([]);
+  root.querySelectorAll(".mh-life-childhood-visit").forEach((visitRow) => {
+    const specSel = visitRow.querySelector(".mh-life-ch-visit-specialist");
+    const specialist =
+      specSel instanceof HTMLSelectElement && CHILDHOOD_SPECIALIST_CODES.has(specSel.value) ? specSel.value : "neuro";
+    const customInp = visitRow.querySelector(".mh-life-ch-visit-custom");
+    const customOther = customInp instanceof HTMLInputElement ? customInp.value.trim() : "";
+    const reasonInp = visitRow.querySelector(".mh-life-ch-visit-reason");
+    const reason = reasonInp instanceof HTMLInputElement ? reasonInp.value.trim() : "";
+    const un = visitRow.querySelector(".mh-life-ch-visit-reason-unknown");
+    const reasonUnknown = un instanceof HTMLInputElement && un.checked;
+    out.push({
+      specialist,
+      customOther: specialist === "custom" ? customOther : "",
+      reason: reasonUnknown ? "" : reason,
+      reasonUnknown,
+    });
+  });
+  return out;
+}
+
 /**
  * @param {HTMLElement} contentEl
  * @param {Record<string, string>} answers
@@ -899,14 +1401,27 @@ export function readLifeStructuredFromDom(contentEl, answers) {
 
   s.earlyNoIssues = chk(contentEl, "#mh-life-early-norm");
   s.earlySpeechLate = chk(contentEl, "#mh-life-early-speech");
-  s.earlySpeechAge = valOf(contentEl, "#mh-life-early-speech-age");
+  s.earlySpeechAgeUnknown = chk(contentEl, "#mh-life-early-speech-age-unknown");
+  s.earlySpeechAge = s.earlySpeechAgeUnknown ? "" : valOf(contentEl, "#mh-life-early-speech-age");
   s.earlyWalkLate = chk(contentEl, "#mh-life-early-walk");
-  s.earlyWalkAge = valOf(contentEl, "#mh-life-early-walk-age");
+  s.earlyWalkAgeUnknown = chk(contentEl, "#mh-life-early-walk-age-unknown");
+  s.earlyWalkAge = s.earlyWalkAgeUnknown ? "" : valOf(contentEl, "#mh-life-early-walk-age");
+  s.earlyDontKnow = chk(contentEl, "#mh-life-early-dont-know");
 
-  s.childhoodNeuro = chk(contentEl, "#mh-life-ch-neuro");
-  s.childhoodPsych = chk(contentEl, "#mh-life-ch-psych");
-  s.childhoodEndo = chk(contentEl, "#mh-life-ch-endo");
-  s.childhoodNone = chk(contentEl, "#mh-life-ch-none");
+  const ch = contentEl.querySelector('input[name="mh-life-childhood"]:checked');
+  s.childhoodSpecialists =
+    ch instanceof HTMLInputElement && (ch.value === "yes" || ch.value === "no")
+      ? ch.value
+      : typeof prev.childhoodSpecialists === "string" && (prev.childhoodSpecialists === "yes" || prev.childhoodSpecialists === "no")
+        ? prev.childhoodSpecialists
+        : "";
+  if (s.childhoodSpecialists === "yes") {
+    s.childhoodVisits = readChildhoodVisitsFromDom(contentEl);
+  } else if (s.childhoodSpecialists === "no") {
+    s.childhoodVisits = [];
+  } else {
+    s.childhoodVisits = normalizeChildhoodVisits(prev.childhoodVisits);
+  }
 
   const k = contentEl.querySelector('input[name="mh-life-kdg"]:checked');
   s.kindergarten = k && "value" in k ? k.value : "";
