@@ -1,5 +1,9 @@
 /* FFiCD: интро → специалист → тест; мобильный — по одному вопросу. Рельс — см. question-nav-rail.css */
 
+.fficd-quickfill {
+  margin-bottom: 0.5rem;
+}
+
 .fficd-intro-actions {
   margin: 1.5rem 0 0;
 }

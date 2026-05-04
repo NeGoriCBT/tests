@@ -1,0 +1,419 @@
+/* Анкета Mental Help: пошаговый мастер */
+
+.mh-shell {
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+.mh-subheading {
+  margin: 1rem 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.mh-step {
+  margin-bottom: 1.5rem;
+}
+
+.mh-step h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+
+.mh-benefits {
+  margin: 1rem 0;
+  padding-left: 1.25rem;
+}
+
+.mh-benefits li {
+  margin-bottom: 0.5rem;
+  line-height: 1.45;
+}
+
+.mh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.mh-progress {
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin: 0 0 0.75rem;
+}
+
+.mh-block-title {
+  font-size: 1.05rem;
+  margin: 0 0 0.5rem;
+}
+
+.mh-question-title {
+  font-size: 1rem;
+  margin: 0.75rem 0 0.5rem;
+  font-weight: 600;
+}
+
+.mh-prompt {
+  margin: 0 0 0.75rem;
+  line-height: 1.45;
+}
+
+.mh-example {
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+
+.mh-textarea {
+  width: 100%;
+  min-height: 10rem;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.mh-textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Жалобы: мультивыбор по блокам */
+
+.mh-complaints-block {
+  margin: 1.25rem 0 0;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.mh-complaints-block:last-of-type {
+  border-bottom: none;
+}
+
+.mh-complaints-block-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+.mh-complaints-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.mh-complaints-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.mh-complaints-option input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.mh-complaints-custom-wrap {
+  margin-top: 0.65rem;
+}
+
+.mh-complaints-custom-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: var(--muted);
+}
+
+.mh-complaints-custom {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.6rem;
+  font: inherit;
+  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.mh-complaints-custom:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.mh-complaints-test {
+  margin-top: 1.75rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+.mh-complaints-test-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.mh-complaints-test-out {
+  margin: 0.75rem 0 0;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--bg, #fff);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-height: 16rem;
+  overflow: auto;
+}
+
+/* Анамнез жизни v2 (структурированный) */
+
+.mh-life-fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 1rem 0;
+  padding: 0.65rem 0.85rem 0.85rem;
+}
+
+.mh-life-legend {
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0 0.35rem;
+}
+
+.mh-word-life-preview {
+  margin: 1.25rem 0 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-muted, rgba(0, 0, 0, 0.03));
+}
+
+.mh-word-life-preview__title {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.mh-word-life-preview__hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--muted, #555);
+}
+
+.mh-word-life-preview__body {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--surface, #fff);
+  border: 1px solid var(--border);
+  max-height: 22rem;
+  overflow: auto;
+}
+
+.mh-life-heredity-list-panel {
+  margin: 0.75rem 0 0;
+  padding: 0 0 0.5rem;
+}
+
+.mh-life-heredity-draft-wrap {
+  margin-top: 0.5rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed var(--border);
+}
+
+.mh-life-heredity-draft-title {
+  margin: 0 0 0.65rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted, #444);
+}
+
+.mh-life-yes-block {
+  margin: 0 0 0.5rem;
+  padding: 0.5rem 0 0;
+  border-left: 3px solid var(--accent, #06c);
+  padding-left: 0.75rem;
+}
+
+.mh-life-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.88rem;
+  color: var(--muted, #555);
+}
+
+.mh-life-heredity-list {
+  margin: 0.35rem 0 0.75rem;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+}
+
+.mh-life-heredity-item {
+  margin: 0.35rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 0.75rem;
+}
+
+.mh-life-heredity-remove {
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface, #fff);
+}
+
+.mh-life-heredity-actions {
+  margin: 0.5rem 0 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.mh-life-heredity-no-more {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface, #fff);
+}
+
+.mh-life-heredity-no-more:hover {
+  border-color: var(--accent, #06c);
+}
+
+.mh-life-heredity-finish-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.mh-life-heredity-list-actions {
+  margin-top: 0.65rem;
+}
+
+.mh-life-add-case {
+  font: inherit;
+  font-size: 0.92rem;
+  padding: 0.45rem 0.85rem;
+  cursor: pointer;
+  border: 1px solid var(--accent, #06c);
+  border-radius: var(--radius);
+  background: var(--accent, #06c);
+  color: #fff;
+}
+
+.mh-life-add-case:hover {
+  filter: brightness(1.05);
+}
+
+.mh-life-select {
+  display: block;
+  width: 100%;
+  max-width: 24rem;
+  margin: 0.35rem 0 0.5rem;
+  padding: 0.45rem 0.5rem;
+  font: inherit;
+  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-sizing: border-box;
+}
+
+.mh-life-line-row {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+}
+
+.mh-life-radio,
+.mh-life-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.mh-life-check input,
+.mh-life-radio input {
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+}
+
+.mh-life-row {
+  margin: 0.35rem 0;
+}
+
+.mh-life-text {
+  width: 100%;
+  max-width: 22rem;
+  padding: 0.45rem 0.5rem;
+  font: inherit;
+  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-sizing: border-box;
+}
+
+.mh-life-text--narrow {
+  max-width: 5rem;
+  width: 5rem;
+  display: inline-block;
+}
+
+.mh-life-custom-wrap {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.88rem;
+}
+
+.mh-life-edu-block {
+  margin: 0.75rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.mh-life-edu-block:last-child {
+  border-bottom: none;
+}
+
+.mh-life-edu-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+}

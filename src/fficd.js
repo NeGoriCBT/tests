@@ -72,6 +72,16 @@ let mobileIndex = 1;
 /** @type {HTMLButtonElement[]} */
 let stripButtons = [];
 
+function setAllFficdAnswers(scoreOrRandom) {
+  for (let i = 1; i <= FFICD_N; i += 1) {
+    const score =
+      scoreOrRandom === "random" ? Math.floor(Math.random() * 5) + 1 : Number(scoreOrRandom);
+    const input = form.querySelector(`input[name="fficd-${i}"][value="${score}"]`);
+    if (input instanceof HTMLInputElement) input.checked = true;
+  }
+  updateProgressUI();
+}
+
 function itemAnswered(i) {
   const sel = form.querySelector(`input[name="fficd-${i}"]:checked`);
   return Boolean(sel);
@@ -130,6 +140,25 @@ function syncMobileMode() {
 }
 
 function renderForm() {
+  const quickFill = document.createElement("div");
+  quickFill.className = "scl90-quickfill fficd-quickfill";
+  quickFill.innerHTML = `
+    <span class="scl90-quickfill__label">Проверка:</span>
+    <button type="button" class="btn btn--ghost" data-fill="1">Все 1</button>
+    <button type="button" class="btn btn--ghost" data-fill="2">Все 2</button>
+    <button type="button" class="btn btn--ghost" data-fill="3">Все 3</button>
+    <button type="button" class="btn btn--ghost" data-fill="4">Все 4</button>
+    <button type="button" class="btn btn--ghost" data-fill="random">Рандомно (1–5)</button>
+  `;
+  quickFill.addEventListener("click", (e) => {
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+    const fill = target.dataset.fill;
+    if (!fill) return;
+    setAllFficdAnswers(fill);
+  });
+  form.appendChild(quickFill);
+
   const head = document.createElement("div");
   head.className = "scl90-matrix-head";
   head.innerHTML = `
