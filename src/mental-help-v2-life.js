@@ -120,7 +120,7 @@ function formatOneHeredityCaseForWord(c) {
   if (!rel && !p) return "";
   if (!rel) return p;
   if (!p) return rel;
-  return `${rel} - ${p}`;
+  return `${rel} ${p}`;
 }
 
 /** @param {HeredityCase[]} cases */
@@ -137,6 +137,14 @@ export function emptyLifeStructuredState() {
     /** Если true при ответе «Да» — форма черновика скрыта, виден только список и «Добавить ещё». */
     heredityCloseDraft: false,
     birthFamily: "",
+    birthOrder: "",
+    birthChildrenTotal: "",
+    birthTerm: "",
+    birthDelivery: "",
+    birthCourse: "",
+    birthCourseDetails: "",
+    birthTrauma: "",
+    birthTraumaDetails: "",
     earlyNoIssues: false,
     earlySpeechLate: false,
     earlySpeechAge: "",
@@ -145,6 +153,18 @@ export function emptyLifeStructuredState() {
     earlyWalkAge: "",
     earlyWalkAgeUnknown: false,
     earlyDontKnow: false,
+    devFirstYear: "",
+    devFirstYearDelayDetails: "",
+    enuresisAfter5: "",
+    parasomnia: "",
+    parasomniaNightFears: false,
+    parasomniaNightmares: false,
+    parasomniaSleepwalk: false,
+    parasomniaSleeptalk: false,
+    parasomniaOther: "",
+    kindergartenAttend: "",
+    kindergartenAdapt: "",
+    kindergartenAdaptDetails: "",
     /** @type {"" | "yes" | "no"} */
     childhoodSpecialists: "",
     /** @type {ChildhoodVisit[]} */
@@ -358,32 +378,143 @@ function verbBornPastForBirthBlock(gender) {
   return "Родился(лась)";
 }
 
-/** @param {Record<string, unknown>} state @param {"male" | "female" | null} gender */
-function earlySpeechWordLine(state, gender) {
-  if (!state.earlySpeechLate) return null;
-  const phrase =
-    gender === "male"
-      ? "поздно начал говорить"
-      : gender === "female"
-        ? "поздно начала говорить"
-        : "поздно начал(а) говорить";
-  if (state.earlySpeechAgeUnknown === true) return `${phrase} (точный возраст неизвестен)`;
-  const a = String(state.earlySpeechAge ?? "").trim();
-  return a ? `${phrase} (возраст ${a})` : phrase;
+/** @param {"male" | "female" | null} gender */
+function verbTransferredPast(gender) {
+  if (gender === "male") return "Перенес";
+  if (gender === "female") return "Перенесла";
+  return "Перенес(ла)";
+}
+
+function childOrderInstrumentalWord(n) {
+  const m = {
+    1: "первым",
+    2: "вторым",
+    3: "третьим",
+    4: "четвертым",
+    5: "пятым",
+    6: "шестым",
+    7: "седьмым",
+    8: "восьмым",
+    9: "девятым",
+    10: "десятым",
+  };
+  return m[n] ?? `${n}-м`;
+}
+
+function upperFirst(s) {
+  const t = String(s ?? "").trim();
+  if (!t) return "";
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+/** @param {Record<string, unknown>} state */
+function birthOrderPhraseForWord(state) {
+  const order = Number(state.birthOrder);
+  const total = Number(state.birthChildrenTotal);
+  if (!Number.isInteger(order) || !Number.isInteger(total) || order < 1 || total < 1 || order > 10 || total > 10 || order > total) {
+    return "";
+  }
+  if (order === 1 && total === 1) return "единственным ребенком";
+  if (order === total && total > 1) return "младшим ребенком";
+  return `${childOrderInstrumentalWord(order)} ребенком`;
 }
 
 /** @param {Record<string, unknown>} state @param {"male" | "female" | null} gender */
-function earlyWalkWordLine(state, gender) {
-  if (!state.earlyWalkLate) return null;
-  const phrase =
-    gender === "male"
-      ? "поздно начал ходить"
-      : gender === "female"
-        ? "поздно начала ходить"
-        : "поздно начал(а) ходить";
-  if (state.earlyWalkAgeUnknown === true) return `${phrase} (точный возраст неизвестен)`;
-  const a = String(state.earlyWalkAge ?? "").trim();
-  return a ? `${phrase} (возраст ${a})` : phrase;
+function birth345LineForWord(state) {
+  const bits = [];
+  if (state.birthTerm === "term") bits.push("Роды в срок");
+  if (state.birthTerm === "preterm") bits.push("Роды преждевременные");
+  if (state.birthTerm === "postterm") bits.push("Роды запоздалые");
+  if (state.birthTerm === "unknown") bits.push("срок родов не известен");
+
+  if (state.birthDelivery === "self") bits.push("самостоятельные");
+  if (state.birthDelivery === "cesarean") bits.push("путем кесарева сечения");
+
+  if (state.birthCourse === "normal") bits.push("без осложнений");
+  if (state.birthCourse === "complicated") {
+    const d = String(state.birthCourseDetails ?? "").trim();
+    bits.push(d ? `протекали с осложнениями (со слов: "${d}")` : "протекали с осложнениями");
+  }
+  if (state.birthCourse === "unknown") bits.push("характер родов не известен");
+
+  if (!bits.length) return "";
+  bits[0] = upperFirst(bits[0]);
+  return `${bits.join(", ")}.`;
+}
+
+/** @param {Record<string, unknown>} state @param {"male" | "female" | null} gender */
+function parasomniaListForWord(state) {
+  const items = [];
+  if (state.parasomniaNightFears) items.push("ночные страхи");
+  if (state.parasomniaNightmares) items.push("кошмары");
+  if (state.parasomniaSleepwalk) items.push("снохождения");
+  if (state.parasomniaSleeptalk) items.push("сноговорения");
+  if (!items.length) return "";
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} и ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")} и ${items[items.length - 1]}`;
+}
+
+/** @param {Record<string, unknown>} state */
+function block3WordLines(state) {
+  const lines = [];
+
+  if (state.devFirstYear === "timely") lines.push("Психомоторное развитие в первый год жизни своевременное.");
+  if (state.devFirstYear === "delay") {
+    const d = String(state.devFirstYearDelayDetails ?? "").trim();
+    lines.push(
+      d
+        ? `В первый год жизни отмечалась задержка психомоторного развития (со слов: "${d}").`
+        : "В первый год жизни отмечалась задержка психомоторного развития."
+    );
+  }
+  if (state.devFirstYear === "unknown") lines.push("Данные о психомоторном развитии в первый год жизни отсутствуют.");
+
+  const enNo = state.enuresisAfter5 === "no";
+  const parNo = state.parasomnia === "no";
+  if (enNo && parNo) {
+    lines.push("Энуреза после 5 лет, ночных страхов, кошмаров, снохождений и сноговорений в детстве не было.");
+  } else {
+    if (state.enuresisAfter5 === "yes") lines.push("В детстве отмечался энурез после 5 лет.");
+    if (state.enuresisAfter5 === "no") lines.push("Энуреза после 5 лет не было.");
+    if (state.enuresisAfter5 === "unknown") lines.push("Сведения об энурезе отсутствуют.");
+
+    if (state.parasomnia === "no") {
+      lines.push("Ночных страхов, кошмаров, снохождений и сноговорений в детстве не было.");
+    } else if (state.parasomnia === "yes") {
+      const base = parasomniaListForWord(state);
+      const other = String(state.parasomniaOther ?? "").trim();
+      if (base || other) {
+        const list = base || "парасомнии";
+        lines.push(other ? `В детстве отмечались ${list} (со слов: "${other}").` : `В детстве отмечались ${list}.`);
+      }
+    } else if (state.parasomnia === "unknown") {
+      lines.push("Сведения о парасомниях в детстве отсутствуют.");
+    }
+  }
+
+  if (state.kindergartenAttend === "yes") {
+    if (state.kindergartenAdapt === "easy") {
+      lines.push("Детский сад посещал, адаптировался без особенностей.");
+    } else if (state.kindergartenAdapt === "difficult") {
+      const d = String(state.kindergartenAdaptDetails ?? "").trim();
+      lines.push(
+        d
+          ? `Детский сад посещал, отмечались трудности адаптации (со слов: "${d}").`
+          : "Детский сад посещал, отмечались трудности адаптации."
+      );
+    } else if (state.kindergartenAdapt === "unknown") {
+      lines.push("Детский сад посещал, сведения об адаптации отсутствуют.");
+    } else {
+      lines.push("Детский сад посещал.");
+    }
+  } else if (state.kindergartenAttend === "no") {
+    lines.push("Детский сад не посещал, воспитывался дома.");
+  } else if (state.kindergartenAttend === "unknown") {
+    lines.push("Данные о посещении детского сада отсутствуют.");
+  }
+
+  return lines;
 }
 
 /** @param {"male" | "female" | null} gender */
@@ -451,28 +582,37 @@ export function formatLifeStructuredForWord(state, gender) {
   else if (h === "yes") {
     const cases = Array.isArray(state.heredityCases) ? /** @type {HeredityCase[]} */ (state.heredityCases) : [];
     const line = formatHeredityCasesLineForWord(cases);
-    if (line) lines.push(line);
+    if (line) lines.push(`Наследственность: ${line}.`);
     else lines.push("В семье отмечались психические расстройства (родственники и характер патологии не указаны).");
   }
 
   const born = verbBornPastForBirthBlock(gender);
-  if (state.birthFamily === "full") lines.push(`${born} в полной семье.`);
-  if (state.birthFamily === "incomplete") lines.push(`${born} в неполной семье.`);
+  const birthFamilyPart =
+    state.birthFamily === "full"
+      ? `${born} в полной семье`
+      : state.birthFamily === "incomplete"
+        ? `${born} в неполной семье`
+        : "";
+  const birthOrderPart = birthOrderPhraseForWord(state);
+  if (birthFamilyPart && birthOrderPart) lines.push(`${birthFamilyPart}, ${birthOrderPart}.`);
+  else if (birthFamilyPart) lines.push(`${birthFamilyPart}.`);
+  else if (birthOrderPart) lines.push(`${upperFirst(birthOrderPart)}.`);
 
-  const earlyBits = [];
-  if (state.earlyNoIssues) earlyBits.push("раннее развитие без особенностей");
-  const sp = earlySpeechWordLine(state, gender);
-  if (sp) earlyBits.push(sp);
-  const wl = earlyWalkWordLine(state, gender);
-  if (wl) earlyBits.push(wl);
-  if (state.earlyDontKnow) earlyBits.push("сведения о раннем развитии неизвестны");
-  if (earlyBits.length) lines.push(`Раннее развитие: ${earlyBits.join("; ")}.`);
+  const birth345Line = birth345LineForWord(state);
+  if (birth345Line) lines.push(birth345Line);
+
+  if (state.birthTrauma === "no") lines.push("Родовой травмы не было.");
+  if (state.birthTrauma === "yes") {
+    const details = String(state.birthTraumaDetails ?? "").trim();
+    // Фраза фиксированная: «травма» женского рода, согласуем по слову «травма»
+    lines.push(details ? `Была родовая травма (со слов: "${details}").` : `Была родовая травма.`);
+  }
+  if (state.birthTrauma === "unknown") lines.push("Объективных данных о наличии родовой травмы нет.");
+
+  lines.push(...block3WordLines(state));
 
   const chLine = formatChildhoodSpecialistsLineForWord(state, gender);
   if (chLine) lines.push(chLine);
-
-  if (state.kindergarten === "yes") lines.push("Детский сад посещал(а).");
-  if (state.kindergarten === "no") lines.push("Детский сад не посещал(а).");
 
   const sa = String(state.schoolStartAge ?? "").trim();
   const perf = schoolPerfLabel(String(state.schoolPerformance ?? ""));
@@ -578,7 +718,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   }
   const h3 = document.createElement("h3");
   h3.className = "mh-question-title";
-  h3.textContent = "Были ли в семье установленные расстройства психики?";
+  h3.textContent = "Были ли у Ваших родственников установленные расстройства психики?";
   contentEl.appendChild(h3);
 
   function fieldset(title) {
@@ -605,9 +745,9 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   }
 
   const fs0 = fieldset("Ответ");
+  fs0.appendChild(radioRow("mh-life-heredity", "yes", "Да", state.heredity === "yes"));
   fs0.appendChild(radioRow("mh-life-heredity", "no", "Нет", state.heredity === "no"));
   fs0.appendChild(radioRow("mh-life-heredity", "unknown", "Не знаю", state.heredity === "unknown"));
-  fs0.appendChild(radioRow("mh-life-heredity", "yes", "Да", state.heredity === "yes"));
   contentEl.appendChild(fs0);
 
   const cases = Array.isArray(state.heredityCases) ? /** @type {HeredityCase[]} */ (state.heredityCases) : [];
@@ -816,121 +956,270 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   btnReopenDraft.addEventListener("click", () => setHeredityCloseDraft(false));
 
   const fsB2 = fieldset("Блок 2. Рождение и семья");
-  const bornLabel = verbBornPastForBirthBlock(gender);
-  fsB2.appendChild(radioRow("mh-life-birth", "full", `${bornLabel} в полной семье`, state.birthFamily === "full"));
-  fsB2.appendChild(radioRow("mh-life-birth", "incomplete", `${bornLabel} в неполной семье`, state.birthFamily === "incomplete"));
+  const q2a = document.createElement("p");
+  q2a.className = "mh-life-edu-title";
+  q2a.textContent = "Вы родились в полной семье?";
+  fsB2.appendChild(q2a);
+  fsB2.appendChild(radioRow("mh-life-birth", "full", "Да", state.birthFamily === "full"));
+  fsB2.appendChild(radioRow("mh-life-birth", "incomplete", "Нет", state.birthFamily === "incomplete"));
+
+  const q2b = document.createElement("p");
+  q2b.className = "mh-life-edu-title";
+  q2b.textContent = "Каким по счету ребенком вы родились?";
+  fsB2.appendChild(q2b);
+  const ordRow = document.createElement("div");
+  ordRow.className = "mh-life-row";
+  const ordSel = document.createElement("select");
+  ordSel.id = "mh-life-birth-order";
+  ordSel.className = "mh-life-select";
+  const ordEmpty = document.createElement("option");
+  ordEmpty.value = "";
+  ordEmpty.textContent = "—";
+  ordSel.appendChild(ordEmpty);
+  for (let n = 1; n <= 10; n += 1) {
+    const o = document.createElement("option");
+    o.value = String(n);
+    o.textContent = String(n);
+    if (String(state.birthOrder ?? "") === String(n)) o.selected = true;
+    ordSel.appendChild(o);
+  }
+  ordRow.appendChild(document.createTextNode("По счету: "));
+  ordRow.appendChild(ordSel);
+  fsB2.appendChild(ordRow);
+
+  const totalRow = document.createElement("div");
+  totalRow.className = "mh-life-row";
+  const totalSel = document.createElement("select");
+  totalSel.id = "mh-life-birth-total";
+  totalSel.className = "mh-life-select";
+  const totalEmpty = document.createElement("option");
+  totalEmpty.value = "";
+  totalEmpty.textContent = "—";
+  totalSel.appendChild(totalEmpty);
+  for (let n = 1; n <= 10; n += 1) {
+    const o = document.createElement("option");
+    o.value = String(n);
+    o.textContent = String(n);
+    if (String(state.birthChildrenTotal ?? "") === String(n)) o.selected = true;
+    totalSel.appendChild(o);
+  }
+  totalRow.appendChild(document.createTextNode("Из скольких детей: "));
+  totalRow.appendChild(totalSel);
+  fsB2.appendChild(totalRow);
+
+  const q3 = document.createElement("p");
+  q3.className = "mh-life-edu-title";
+  q3.textContent = "3 вопрос. Срок родов:";
+  fsB2.appendChild(q3);
+  fsB2.appendChild(radioRow("mh-life-birth-term", "term", "в срок (37-42 недели)", state.birthTerm === "term"));
+  fsB2.appendChild(
+    radioRow("mh-life-birth-term", "preterm", "раньше положенного срока (до 37 недель)", state.birthTerm === "preterm")
+  );
+  fsB2.appendChild(
+    radioRow("mh-life-birth-term", "postterm", "позже положенного срока (после 42 недель)", state.birthTerm === "postterm")
+  );
+  fsB2.appendChild(radioRow("mh-life-birth-term", "unknown", "не знаю", state.birthTerm === "unknown"));
+
+  const q4 = document.createElement("p");
+  q4.className = "mh-life-edu-title";
+  q4.textContent = "4 вопрос. Роды были?";
+  fsB2.appendChild(q4);
+  fsB2.appendChild(radioRow("mh-life-birth-delivery", "self", "Самостоятельные", state.birthDelivery === "self"));
+  fsB2.appendChild(radioRow("mh-life-birth-delivery", "cesarean", "Кесарево сечение", state.birthDelivery === "cesarean"));
+
+  const q5 = document.createElement("p");
+  q5.className = "mh-life-edu-title";
+  q5.textContent = "5 вопрос. Течение родов:";
+  fsB2.appendChild(q5);
+  fsB2.appendChild(radioRow("mh-life-birth-course", "normal", "Без осложнений", state.birthCourse === "normal"));
+  fsB2.appendChild(radioRow("mh-life-birth-course", "complicated", "С осложнениями", state.birthCourse === "complicated"));
+  fsB2.appendChild(radioRow("mh-life-birth-course", "unknown", "Не знаю", state.birthCourse === "unknown"));
+  const courseDetailsRow = document.createElement("div");
+  courseDetailsRow.className = "mh-life-row";
+  courseDetailsRow.hidden = state.birthCourse !== "complicated";
+  courseDetailsRow.appendChild(document.createTextNode("Уточнение осложнений: "));
+  const courseDetailsInp = document.createElement("input");
+  courseDetailsInp.type = "text";
+  courseDetailsInp.id = "mh-life-birth-course-details";
+  courseDetailsInp.className = "mh-life-text";
+  courseDetailsInp.value = String(state.birthCourseDetails ?? "");
+  courseDetailsRow.appendChild(courseDetailsInp);
+  fsB2.appendChild(courseDetailsRow);
+  fsB2.querySelectorAll('input[name="mh-life-birth-course"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const cr = fsB2.querySelector('input[name="mh-life-birth-course"]:checked');
+      const isComp = cr instanceof HTMLInputElement && cr.value === "complicated";
+      courseDetailsRow.hidden = !isComp;
+      if (!isComp) courseDetailsInp.value = "";
+    });
+  });
+
+  const q6 = document.createElement("p");
+  q6.className = "mh-life-edu-title";
+  q6.textContent = "Была ли родовая травма?";
+  fsB2.appendChild(q6);
+  fsB2.appendChild(radioRow("mh-life-birth-trauma", "yes", "Да", state.birthTrauma === "yes"));
+  fsB2.appendChild(radioRow("mh-life-birth-trauma", "no", "Нет", state.birthTrauma === "no"));
+  fsB2.appendChild(radioRow("mh-life-birth-trauma", "unknown", "Не знаю", state.birthTrauma === "unknown"));
+  const traumaDetailsRow = document.createElement("div");
+  traumaDetailsRow.className = "mh-life-row";
+  traumaDetailsRow.hidden = state.birthTrauma !== "yes";
+  traumaDetailsRow.appendChild(document.createTextNode("Со слов пациента: "));
+  const traumaDetailsInp = document.createElement("input");
+  traumaDetailsInp.type = "text";
+  traumaDetailsInp.id = "mh-life-birth-trauma-details";
+  traumaDetailsInp.className = "mh-life-text";
+  traumaDetailsInp.value = String(state.birthTraumaDetails ?? "");
+  traumaDetailsRow.appendChild(traumaDetailsInp);
+  fsB2.appendChild(traumaDetailsRow);
+  fsB2.querySelectorAll('input[name="mh-life-birth-trauma"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const tr = fsB2.querySelector('input[name="mh-life-birth-trauma"]:checked');
+      const isYes = tr instanceof HTMLInputElement && tr.value === "yes";
+      traumaDetailsRow.hidden = !isYes;
+      if (!isYes) traumaDetailsInp.value = "";
+    });
+  });
+
   contentEl.appendChild(fsB2);
 
-  const fsB3 = fieldset("Блок 3. Раннее развитие (можно несколько)");
-  fsB3.appendChild(mkCheck("mh-life-early-norm", "Без особенностей", state.earlyNoIssues));
+  const fsB3 = fieldset("Блок 3. Раннее развитие");
 
-  const speechBlock = document.createElement("div");
-  speechBlock.className = "mh-life-early-block";
-  const speechLab = document.createElement("label");
-  speechLab.className = "mh-life-check";
-  const speechCb = document.createElement("input");
-  speechCb.type = "checkbox";
-  speechCb.id = "mh-life-early-speech";
-  speechCb.checked = Boolean(state.earlySpeechLate);
-  speechLab.appendChild(speechCb);
-  speechLab.appendChild(document.createTextNode(" Начал поздно говорить"));
-  speechBlock.appendChild(speechLab);
-  const speechSub = document.createElement("div");
-  speechSub.id = "mh-life-early-speech-sub";
-  speechSub.className = "mh-life-early-sub";
-  speechSub.hidden = !state.earlySpeechLate;
-  const speechAgeRow = document.createElement("div");
-  speechAgeRow.className = "mh-life-early-age-row";
-  speechAgeRow.appendChild(document.createTextNode("Возраст (лет): "));
-  const speechAgeInp = document.createElement("input");
-  speechAgeInp.type = "text";
-  speechAgeInp.inputMode = "numeric";
-  speechAgeInp.className = "mh-life-text mh-life-text--narrow";
-  speechAgeInp.id = "mh-life-early-speech-age";
-  speechAgeInp.placeholder = "например, 2";
-  speechAgeInp.value = state.earlySpeechAgeUnknown ? "" : String(state.earlySpeechAge ?? "");
-  speechAgeInp.disabled = Boolean(state.earlySpeechAgeUnknown);
-  speechAgeRow.appendChild(speechAgeInp);
-  speechSub.appendChild(speechAgeRow);
-  const speechUnLab = document.createElement("label");
-  speechUnLab.className = "mh-life-check mh-life-early-unknown-lab";
-  const speechUn = document.createElement("input");
-  speechUn.type = "checkbox";
-  speechUn.id = "mh-life-early-speech-age-unknown";
-  speechUn.checked = Boolean(state.earlySpeechAgeUnknown);
-  speechUnLab.appendChild(speechUn);
-  speechUnLab.appendChild(document.createTextNode(" Не знаю точный возраст"));
-  speechSub.appendChild(speechUnLab);
-  speechBlock.appendChild(speechSub);
-  fsB3.appendChild(speechBlock);
-
-  speechCb.addEventListener("change", () => {
-    speechSub.hidden = !speechCb.checked;
-    if (!speechCb.checked) {
-      speechUn.checked = false;
-      speechAgeInp.disabled = false;
-      speechAgeInp.value = "";
-    }
-  });
-  speechUn.addEventListener("change", () => {
-    speechAgeInp.disabled = speechUn.checked;
-    if (speechUn.checked) speechAgeInp.value = "";
+  const q31 = document.createElement("p");
+  q31.className = "mh-life-edu-title";
+  q31.textContent = "Вопрос 1. Как протекало Ваше развитие в первый год жизни?";
+  fsB3.appendChild(q31);
+  fsB3.appendChild(radioRow("mh-life-dev-year", "timely", "Без задержек, своевременно", state.devFirstYear === "timely"));
+  fsB3.appendChild(radioRow("mh-life-dev-year", "delay", "С задержками", state.devFirstYear === "delay"));
+  fsB3.appendChild(radioRow("mh-life-dev-year", "unknown", "Не знаю", state.devFirstYear === "unknown"));
+  const devDelayRow = document.createElement("div");
+  devDelayRow.className = "mh-life-row";
+  devDelayRow.hidden = state.devFirstYear !== "delay";
+  devDelayRow.appendChild(document.createTextNode("Какие именно задержки (через запятую): "));
+  const devDelayInp = document.createElement("input");
+  devDelayInp.type = "text";
+  devDelayInp.id = "mh-life-dev-year-delay-details";
+  devDelayInp.className = "mh-life-text";
+  devDelayInp.value = String(state.devFirstYearDelayDetails ?? "");
+  devDelayRow.appendChild(devDelayInp);
+  fsB3.appendChild(devDelayRow);
+  fsB3.querySelectorAll('input[name="mh-life-dev-year"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const dv = fsB3.querySelector('input[name="mh-life-dev-year"]:checked');
+      const show = dv instanceof HTMLInputElement && dv.value === "delay";
+      devDelayRow.hidden = !show;
+      if (!show) devDelayInp.value = "";
+    });
   });
 
-  const walkBlock = document.createElement("div");
-  walkBlock.className = "mh-life-early-block";
-  const walkLab = document.createElement("label");
-  walkLab.className = "mh-life-check";
-  const walkCb = document.createElement("input");
-  walkCb.type = "checkbox";
-  walkCb.id = "mh-life-early-walk";
-  walkCb.checked = Boolean(state.earlyWalkLate);
-  walkLab.appendChild(walkCb);
-  walkLab.appendChild(document.createTextNode(" Начал поздно ходить"));
-  walkBlock.appendChild(walkLab);
-  const walkSub = document.createElement("div");
-  walkSub.id = "mh-life-early-walk-sub";
-  walkSub.className = "mh-life-early-sub";
-  walkSub.hidden = !state.earlyWalkLate;
-  const walkAgeRow = document.createElement("div");
-  walkAgeRow.className = "mh-life-early-age-row";
-  walkAgeRow.appendChild(document.createTextNode("Возраст (лет): "));
-  const walkAgeInp = document.createElement("input");
-  walkAgeInp.type = "text";
-  walkAgeInp.inputMode = "numeric";
-  walkAgeInp.className = "mh-life-text mh-life-text--narrow";
-  walkAgeInp.id = "mh-life-early-walk-age";
-  walkAgeInp.placeholder = "например, 1,5";
-  walkAgeInp.value = state.earlyWalkAgeUnknown ? "" : String(state.earlyWalkAge ?? "");
-  walkAgeInp.disabled = Boolean(state.earlyWalkAgeUnknown);
-  walkAgeRow.appendChild(walkAgeInp);
-  walkSub.appendChild(walkAgeRow);
-  const walkUnLab = document.createElement("label");
-  walkUnLab.className = "mh-life-check mh-life-early-unknown-lab";
-  const walkUn = document.createElement("input");
-  walkUn.type = "checkbox";
-  walkUn.id = "mh-life-early-walk-age-unknown";
-  walkUn.checked = Boolean(state.earlyWalkAgeUnknown);
-  walkUnLab.appendChild(walkUn);
-  walkUnLab.appendChild(document.createTextNode(" Не знаю точный возраст"));
-  walkSub.appendChild(walkUnLab);
-  walkBlock.appendChild(walkSub);
-  fsB3.appendChild(walkBlock);
+  const q32 = document.createElement("p");
+  q32.className = "mh-life-edu-title";
+  q32.textContent = "Вопрос 2. Были ли энурез (недержание мочи) после 5 лет?";
+  fsB3.appendChild(q32);
+  fsB3.appendChild(radioRow("mh-life-enuresis", "yes", "Да, был", state.enuresisAfter5 === "yes"));
+  fsB3.appendChild(radioRow("mh-life-enuresis", "no", "Нет", state.enuresisAfter5 === "no"));
+  fsB3.appendChild(radioRow("mh-life-enuresis", "unknown", "Не знаю", state.enuresisAfter5 === "unknown"));
 
-  walkCb.addEventListener("change", () => {
-    walkSub.hidden = !walkCb.checked;
-    if (!walkCb.checked) {
-      walkUn.checked = false;
-      walkAgeInp.disabled = false;
-      walkAgeInp.value = "";
-    }
-  });
-  walkUn.addEventListener("change", () => {
-    walkAgeInp.disabled = walkUn.checked;
-    if (walkUn.checked) walkAgeInp.value = "";
+  const q33 = document.createElement("p");
+  q33.className = "mh-life-edu-title";
+  q33.textContent = "Вопрос 3. Были ли ночные страхи, кошмары, снохождения, сноговорения в детстве?";
+  fsB3.appendChild(q33);
+  fsB3.appendChild(radioRow("mh-life-parasomnia", "yes", "Да, отмечались", state.parasomnia === "yes"));
+  fsB3.appendChild(radioRow("mh-life-parasomnia", "no", "Нет", state.parasomnia === "no"));
+  fsB3.appendChild(radioRow("mh-life-parasomnia", "unknown", "Не знаю", state.parasomnia === "unknown"));
+  const paraSub = document.createElement("div");
+  paraSub.className = "mh-life-early-sub";
+  paraSub.hidden = state.parasomnia !== "yes";
+  paraSub.appendChild(mkCheck("mh-life-para-fears", "Ночные страхи", state.parasomniaNightFears));
+  paraSub.appendChild(mkCheck("mh-life-para-nightmares", "Кошмары", state.parasomniaNightmares));
+  paraSub.appendChild(mkCheck("mh-life-para-sleepwalk", "Снохождения (лунатизм)", state.parasomniaSleepwalk));
+  paraSub.appendChild(mkCheck("mh-life-para-sleeptalk", "Сноговорения (разговоры во сне)", state.parasomniaSleeptalk));
+  const paraOtherRow = document.createElement("div");
+  paraOtherRow.className = "mh-life-row";
+  paraOtherRow.appendChild(document.createTextNode("Свой вариант: "));
+  const paraOtherInp = document.createElement("input");
+  paraOtherInp.type = "text";
+  paraOtherInp.id = "mh-life-para-other";
+  paraOtherInp.className = "mh-life-text";
+  paraOtherInp.value = String(state.parasomniaOther ?? "");
+  paraOtherRow.appendChild(paraOtherInp);
+  paraSub.appendChild(paraOtherRow);
+  fsB3.appendChild(paraSub);
+  fsB3.querySelectorAll('input[name="mh-life-parasomnia"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const p = fsB3.querySelector('input[name="mh-life-parasomnia"]:checked');
+      const show = p instanceof HTMLInputElement && p.value === "yes";
+      paraSub.hidden = !show;
+      if (!show) {
+        paraOtherInp.value = "";
+        paraSub.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+          if (cb instanceof HTMLInputElement) cb.checked = false;
+        });
+      }
+    });
   });
 
-  fsB3.appendChild(mkCheck("mh-life-early-dont-know", "Не знаю", state.earlyDontKnow));
+  const q34 = document.createElement("p");
+  q34.className = "mh-life-edu-title";
+  q34.textContent = "Вопрос 4. Посещали ли Вы детский сад?";
+  fsB3.appendChild(q34);
+  fsB3.appendChild(radioRow("mh-life-kdg", "yes", "Да, посещал", state.kindergartenAttend === "yes"));
+  fsB3.appendChild(radioRow("mh-life-kdg", "no", "Нет, не посещал (воспитывался дома)", state.kindergartenAttend === "no"));
+  fsB3.appendChild(radioRow("mh-life-kdg", "unknown", "Не знаю", state.kindergartenAttend === "unknown"));
+
+  const q35Wrap = document.createElement("div");
+  q35Wrap.className = "mh-life-early-sub";
+  q35Wrap.hidden = state.kindergartenAttend !== "yes";
+  const q35 = document.createElement("p");
+  q35.className = "mh-life-edu-title";
+  q35.textContent = "Вопрос 5. Как Вы адаптировались к детскому саду?";
+  q35Wrap.appendChild(q35);
+  q35Wrap.appendChild(
+    radioRow("mh-life-kdg-adapt", "easy", "Адаптировался без особенностей", state.kindergartenAdapt === "easy")
+  );
+  q35Wrap.appendChild(
+    radioRow(
+      "mh-life-kdg-adapt",
+      "difficult",
+      "Были трудности адаптации",
+      state.kindergartenAdapt === "difficult"
+    )
+  );
+  q35Wrap.appendChild(radioRow("mh-life-kdg-adapt", "unknown", "Не знаю", state.kindergartenAdapt === "unknown"));
+  const adaptDetailsRow = document.createElement("div");
+  adaptDetailsRow.className = "mh-life-row";
+  adaptDetailsRow.hidden = state.kindergartenAdapt !== "difficult";
+  adaptDetailsRow.appendChild(document.createTextNode("Уточнение: "));
+  const adaptDetailsInp = document.createElement("input");
+  adaptDetailsInp.type = "text";
+  adaptDetailsInp.id = "mh-life-kdg-adapt-details";
+  adaptDetailsInp.className = "mh-life-text";
+  adaptDetailsInp.value = String(state.kindergartenAdaptDetails ?? "");
+  adaptDetailsRow.appendChild(adaptDetailsInp);
+  q35Wrap.appendChild(adaptDetailsRow);
+  q35Wrap.querySelectorAll('input[name="mh-life-kdg-adapt"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const a = q35Wrap.querySelector('input[name="mh-life-kdg-adapt"]:checked');
+      const show = a instanceof HTMLInputElement && a.value === "difficult";
+      adaptDetailsRow.hidden = !show;
+      if (!show) adaptDetailsInp.value = "";
+    });
+  });
+  fsB3.appendChild(q35Wrap);
+  fsB3.querySelectorAll('input[name="mh-life-kdg"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const k = fsB3.querySelector('input[name="mh-life-kdg"]:checked');
+      const show = k instanceof HTMLInputElement && k.value === "yes";
+      q35Wrap.hidden = !show;
+      if (!show) {
+        q35Wrap.querySelectorAll('input[name="mh-life-kdg-adapt"]').forEach((r) => {
+          if (r instanceof HTMLInputElement) r.checked = false;
+        });
+        adaptDetailsInp.value = "";
+      }
+    });
+  });
+
   contentEl.appendChild(fsB3);
 
   const fsB4 = fieldset("Блок 4. Наблюдались ли вы у специалистов в детстве?");
@@ -1094,11 +1383,6 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   });
 
   contentEl.appendChild(fsB4);
-
-  const fsB5 = fieldset("Блок 5. Детский сад (ДДУ)");
-  fsB5.appendChild(radioRow("mh-life-kdg", "yes", "Посещал", state.kindergarten === "yes"));
-  fsB5.appendChild(radioRow("mh-life-kdg", "no", "Не посещал", state.kindergarten === "no"));
-  contentEl.appendChild(fsB5);
 
   const fsB6 = fieldset("Блок 6. Школа");
   const rowAge = document.createElement("div");
@@ -1398,15 +1682,39 @@ export function readLifeStructuredFromDom(contentEl, answers) {
 
   const b = contentEl.querySelector('input[name="mh-life-birth"]:checked');
   s.birthFamily = b && "value" in b ? b.value : "";
+  s.birthOrder = valOf(contentEl, "#mh-life-birth-order");
+  s.birthChildrenTotal = valOf(contentEl, "#mh-life-birth-total");
+  const bt = contentEl.querySelector('input[name="mh-life-birth-term"]:checked');
+  s.birthTerm = bt && "value" in bt ? bt.value : "";
+  const bd = contentEl.querySelector('input[name="mh-life-birth-delivery"]:checked');
+  s.birthDelivery = bd && "value" in bd ? bd.value : "";
+  const bcourse = contentEl.querySelector('input[name="mh-life-birth-course"]:checked');
+  s.birthCourse = bcourse && "value" in bcourse ? bcourse.value : "";
+  s.birthCourseDetails = s.birthCourse === "complicated" ? valOf(contentEl, "#mh-life-birth-course-details") : "";
+  const btr = contentEl.querySelector('input[name="mh-life-birth-trauma"]:checked');
+  s.birthTrauma = btr && "value" in btr ? btr.value : "";
+  s.birthTraumaDetails = s.birthTrauma === "yes" ? valOf(contentEl, "#mh-life-birth-trauma-details") : "";
+  const dev = contentEl.querySelector('input[name="mh-life-dev-year"]:checked');
+  s.devFirstYear = dev && "value" in dev ? dev.value : "";
+  s.devFirstYearDelayDetails = s.devFirstYear === "delay" ? valOf(contentEl, "#mh-life-dev-year-delay-details") : "";
 
-  s.earlyNoIssues = chk(contentEl, "#mh-life-early-norm");
-  s.earlySpeechLate = chk(contentEl, "#mh-life-early-speech");
-  s.earlySpeechAgeUnknown = chk(contentEl, "#mh-life-early-speech-age-unknown");
-  s.earlySpeechAge = s.earlySpeechAgeUnknown ? "" : valOf(contentEl, "#mh-life-early-speech-age");
-  s.earlyWalkLate = chk(contentEl, "#mh-life-early-walk");
-  s.earlyWalkAgeUnknown = chk(contentEl, "#mh-life-early-walk-age-unknown");
-  s.earlyWalkAge = s.earlyWalkAgeUnknown ? "" : valOf(contentEl, "#mh-life-early-walk-age");
-  s.earlyDontKnow = chk(contentEl, "#mh-life-early-dont-know");
+  const en = contentEl.querySelector('input[name="mh-life-enuresis"]:checked');
+  s.enuresisAfter5 = en && "value" in en ? en.value : "";
+
+  const pa = contentEl.querySelector('input[name="mh-life-parasomnia"]:checked');
+  s.parasomnia = pa && "value" in pa ? pa.value : "";
+  s.parasomniaNightFears = s.parasomnia === "yes" && chk(contentEl, "#mh-life-para-fears");
+  s.parasomniaNightmares = s.parasomnia === "yes" && chk(contentEl, "#mh-life-para-nightmares");
+  s.parasomniaSleepwalk = s.parasomnia === "yes" && chk(contentEl, "#mh-life-para-sleepwalk");
+  s.parasomniaSleeptalk = s.parasomnia === "yes" && chk(contentEl, "#mh-life-para-sleeptalk");
+  s.parasomniaOther = s.parasomnia === "yes" ? valOf(contentEl, "#mh-life-para-other") : "";
+
+  const k = contentEl.querySelector('input[name="mh-life-kdg"]:checked');
+  s.kindergartenAttend = k && "value" in k ? k.value : "";
+  const ka = contentEl.querySelector('input[name="mh-life-kdg-adapt"]:checked');
+  s.kindergartenAdapt = s.kindergartenAttend === "yes" && ka && "value" in ka ? ka.value : "";
+  s.kindergartenAdaptDetails =
+    s.kindergartenAttend === "yes" && s.kindergartenAdapt === "difficult" ? valOf(contentEl, "#mh-life-kdg-adapt-details") : "";
 
   const ch = contentEl.querySelector('input[name="mh-life-childhood"]:checked');
   s.childhoodSpecialists =
@@ -1422,9 +1730,6 @@ export function readLifeStructuredFromDom(contentEl, answers) {
   } else {
     s.childhoodVisits = normalizeChildhoodVisits(prev.childhoodVisits);
   }
-
-  const k = contentEl.querySelector('input[name="mh-life-kdg"]:checked');
-  s.kindergarten = k && "value" in k ? k.value : "";
 
   s.schoolStartAge = valOf(contentEl, "#mh-life-school-age");
   s.schoolPerformance = valOf(contentEl, "#mh-life-school-perf");
