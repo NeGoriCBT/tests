@@ -12,6 +12,86 @@ export const HEREDITY_UNKNOWN_PHRASE = "Нет объективных данны
 /** @typedef {{ specialist: string; customOther: string; reason: string; reasonUnknown: boolean }} ChildhoodVisit */
 
 const CHILDHOOD_SPECIALIST_CODES = new Set(["neuro", "psych", "endo", "custom"]);
+const SECTION2_DISEASE_CODES = new Set([
+  "a_meningitis",
+  "a_encephalitis",
+  "a_neurosyphilis",
+  "a_hiv",
+  "a_toxoplasmosis_cns",
+  "a_lyme",
+  "a_covid_long",
+  "b_sle_cns",
+  "b_ms",
+  "b_anti_nmda",
+  "b_hashimoto_encephalopathy",
+  "v_hypothyroidism",
+  "v_thyrotoxicosis",
+  "v_diabetes",
+  "v_hyperparathyroidism",
+  "v_cushing",
+  "g_ra",
+  "g_fibromyalgia",
+  "g_copd",
+  "g_hf_ihd",
+  "g_hepatitis_cirrhosis",
+  "d_b12_deficit",
+  "d_d_deficit",
+  "d_iron_def_anemia",
+  "d_folate_deficit",
+  "d_celiac_untreated",
+  "e_other",
+]);
+
+const SECTION2_DISEASE_LABELS = {
+  a_meningitis: "менингит",
+  a_encephalitis: "энцефалит",
+  a_neurosyphilis: "нейросифилис",
+  a_hiv: "ВИЧ-инфекция",
+  a_toxoplasmosis_cns: "токсоплазмоз с поражением нервной системы",
+  a_lyme: "болезнь Лайма (нейроборрелиоз)",
+  a_covid_long: "COVID-19 с длительными последствиями",
+  b_sle_cns: "системная красная волчанка с поражением нервной системы",
+  b_ms: "рассеянный склероз",
+  b_anti_nmda: "анти-NMDA-рецепторный энцефалит",
+  b_hashimoto_encephalopathy: "тиреоидит Хашимото с энцефалопатией",
+  v_hypothyroidism: "гипотиреоз",
+  v_thyrotoxicosis: "тиреотоксикоз/гипертиреоз",
+  v_diabetes: "сахарный диабет",
+  v_hyperparathyroidism: "гиперпаратиреоз",
+  v_cushing: "болезнь Иценко-Кушинга",
+  g_ra: "ревматоидный артрит",
+  g_fibromyalgia: "фибромиалгия",
+  g_copd: "ХОБЛ",
+  g_hf_ihd: "тяжелая сердечная недостаточность/ИБС с приступами",
+  g_hepatitis_cirrhosis: "тяжелый гепатит/цирроз печени",
+  d_b12_deficit: "подтвержденный дефицит витамина B12",
+  d_d_deficit: "дефицит витамина D",
+  d_iron_def_anemia: "железодефицитная анемия средней/тяжелой степени",
+  d_folate_deficit: "дефицит фолиевой кислоты",
+  d_celiac_untreated: "нелеченная целиакия",
+};
+
+const SECTION2_SYMPTOM_CODES = new Set([
+  "mood_change",
+  "anxiety_panic",
+  "hallucinations_delusions",
+  "confusion",
+  "memory_attention_decline",
+]);
+
+const SECTION2_SYMPTOM_LABELS = {
+  mood_change: "изменение настроения",
+  anxiety_panic: "тревога, панические атаки",
+  hallucinations_delusions: "галлюцинации или бред",
+  confusion: "спутанность сознания",
+  memory_attention_decline: "значительное ухудшение памяти/внимания",
+};
+
+/** @typedef {{ name: string; age: string; anesthesia: "" | "yes" | "no" | "unknown" }} OperationEntry */
+/** @typedef {{ age: string; cause: string }} SyncopeEntry */
+/** @typedef {{ age: string; circumstance: "" | "dtp" | "head_hit" | "fall" | "fight" | "unknown"; lossDuration: "" | "seconds" | "minutes" | "over_hour" | "unknown"; exam: "" | "ct" | "mri" | "no" | "unknown" }} TbiEntry */
+/** @typedef {{ trigger: string; reactions: string[] }} AllergyEntry */
+/** @typedef {{ substance: string; lastUse: string; frequency: "" | "once_or_twice" | "episodic" | "regular_period"; treatment: "" | "yes" | "no" }} PavEntry */
 
 const WHO_OPTIONS = [
   ["mother", "Мама"],
@@ -165,11 +245,50 @@ export function emptyLifeStructuredState() {
     kindergartenAttend: "",
     kindergartenAdapt: "",
     kindergartenAdaptDetails: "",
+    childhoodCharacter: "",
+    childhoodCharacterUnknown: false,
     /** @type {"" | "yes" | "no"} */
     childhoodSpecialists: "",
     /** @type {ChildhoodVisit[]} */
     childhoodVisits: [],
-    kindergarten: "",
+    schoolTypeGeneral: false,
+    schoolTypeGymnasium: false,
+    schoolTypeLyceum: false,
+    schoolTypeCorrectional: false,
+    schoolTypeCorrectionalDetails: "",
+    schoolTypeHome: false,
+    schoolTypeHomeFromClass: "",
+    schoolTypeHomeToClass: "",
+    schoolTypeHomeReason: "",
+    schoolTypeUnknown: false,
+    schoolChanged: "",
+    schoolChangeFrequency: "",
+    schoolChangeMove: false,
+    schoolChangeConflictsPeers: false,
+    schoolChangeConflictsTeachers: false,
+    schoolChangePoorPerformance: false,
+    schoolChangeProfile: false,
+    schoolChangeStronger: false,
+    schoolChangeWeaker: false,
+    schoolChangeExpelled: false,
+    schoolChangeOther: false,
+    schoolChangeOtherText: "",
+    schoolAdaptation: "",
+    schoolAdaptationDetails: "",
+    schoolPeerEasyFriends: false,
+    schoolPeerFewFriends: false,
+    schoolPeerCommunicationDifficulties: false,
+    schoolPeerOutcast: false,
+    schoolPeerBullied: false,
+    schoolPeerAggression: false,
+    schoolPeerNeutral: false,
+    schoolTeacherEven: false,
+    schoolTeacherOneConflict: false,
+    schoolTeacherManyConflicts: false,
+    schoolTeacherFavorite: false,
+    schoolTeacherCriticized: false,
+    schoolTeacherNeutral: false,
+    schoolFinished: "",
     schoolStartAge: "",
     schoolPerformance: "",
     schoolClasses: null,
@@ -180,6 +299,53 @@ export function emptyLifeStructuredState() {
     eduHiDone: false,
     eduHiUndone: false,
     eduHiSpec: "",
+    eduNoAfterSchool: false,
+    /** @type {string[]} */
+    section2Diseases: [],
+    section2OtherDisease: "",
+    /** @type {string[]} */
+    section2PsychSymptoms: [],
+    section2PsychNone: false,
+    operationsHad: "",
+    /** @type {OperationEntry[]} */
+    operationsList: [],
+    syncopeNoTbiHad: "",
+    /** @type {SyncopeEntry[]} */
+    syncopeNoTbiList: [],
+    tbiWithLossHad: "",
+    /** @type {TbiEntry[]} */
+    tbiWithLossList: [],
+    epilepsyStatus: "",
+    epilepsyFirstSeizureType: "",
+    epilepsyFirstSeizureAge: "",
+    epilepsyMedsStatus: "",
+    /** @type {string[]} */
+    epilepsyMeds: [],
+    chronicHad: "",
+    chronicDiseasesText: "",
+    chronicMedsRegular: "",
+    chronicMedsText: "",
+    allergyHad: "",
+    /** @type {AllergyEntry[]} */
+    allergyList: [],
+    smokingStatus: "",
+    smokingPastYears: "",
+    smokingCurrentYears: "",
+    smokingCurrentCigs: "",
+    smokingUsesVape: "",
+    alcoholStatus: "",
+    alcoholRareDrink: "",
+    alcoholRareAmount: "",
+    alcoholRegularPref: "",
+    alcoholRegularAmount: "",
+    alcoholRegularConsequencesHangover: false,
+    alcoholRegularConsequencesMemoryBlackouts: false,
+    alcoholRegularConsequencesConflicts: false,
+    alcoholRegularConsequencesLaw: false,
+    alcoholRegularConsequencesNarcologist: false,
+    pavHad: "",
+    /** @type {PavEntry[]} */
+    pavList: [],
   };
 }
 
@@ -363,10 +529,11 @@ function pathologyLabelForWord(code, who) {
 
 function schoolPerfLabel(v) {
   const m = {
-    udarnik: "ударник",
-    otlichnik: "отличник",
-    horoshist: "хорошист",
-    troechnik: "троечник",
+    excellent: "отличник",
+    good4and5: "ударник",
+    mostly4: "хорошист",
+    mostly3: "троечник",
+    weakWithDebts: "слабо, были двойки и задолженности",
   };
   return m[v] ?? v;
 }
@@ -429,6 +596,7 @@ function birth345LineForWord(state) {
 
   if (state.birthDelivery === "self") bits.push("самостоятельные");
   if (state.birthDelivery === "cesarean") bits.push("путем кесарева сечения");
+  if (state.birthDelivery === "unknown") bits.push("способ родоразрешения не известен");
 
   if (state.birthCourse === "normal") bits.push("без осложнений");
   if (state.birthCourse === "complicated") {
@@ -453,6 +621,142 @@ function parasomniaListForWord(state) {
   if (items.length === 1) return items[0];
   if (items.length === 2) return `${items[0]} и ${items[1]}`;
   return `${items.slice(0, -1).join(", ")} и ${items[items.length - 1]}`;
+}
+
+function listWithAnd(parts) {
+  if (!parts.length) return "";
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return `${parts[0]} и ${parts[1]}`;
+  return `${parts.slice(0, -1).join(", ")} и ${parts[parts.length - 1]}`;
+}
+
+/** @param {"male" | "female" | null} gender */
+function verbAttendPast(gender) {
+  if (gender === "male") return "посещал";
+  if (gender === "female") return "посещала";
+  return "посещал(а)";
+}
+
+/** @param {"male" | "female" | null} gender */
+function verbStudiedPast(gender) {
+  if (gender === "male") return "обучался";
+  if (gender === "female") return "обучалась";
+  return "обучался(ась)";
+}
+
+/** @param {"male" | "female" | null} gender */
+function verbChangedSchoolOnce(gender) {
+  if (gender === "male") return "однократно сменил школу";
+  if (gender === "female") return "однократно сменила школу";
+  return "однократно сменил(а) школу";
+}
+
+/** @param {"male" | "female" | null} gender */
+function verbChangedSchoolMany(gender) {
+  if (gender === "male") return "многократно менял школу";
+  if (gender === "female") return "многократно меняла школу";
+  return "многократно менял(а) школу";
+}
+
+/** @param {"male" | "female" | null} gender */
+function wasExpelledPhrase(gender) {
+  if (gender === "male") return "был отчислен из школы";
+  if (gender === "female") return "была отчислена из школы";
+  return "был(а) отчислен(а) из школы";
+}
+
+/** @param {"male" | "female" | null} gender */
+function verbGoToSchoolPast(gender) {
+  if (gender === "male") return "пошёл";
+  if (gender === "female") return "пошла";
+  return "пошёл(ла)";
+}
+
+/** @param {"male" | "female" | null} gender */
+function phraseOutcast(gender) {
+  if (gender === "male") return "был изгоем в классе";
+  if (gender === "female") return "была изгоем в классе";
+  return "был(а) изгоем в классе";
+}
+
+/** @param {"male" | "female" | null} gender */
+function phraseBullied(gender) {
+  if (gender === "male") return "подвергался травле (буллингу) со стороны одноклассников";
+  if (gender === "female") return "подвергалась травле (буллингу) со стороны одноклассников";
+  return "подвергался(ась) травле (буллингу) со стороны одноклассников";
+}
+
+/** @param {"male" | "female" | null} gender */
+function phraseAggression(gender) {
+  if (gender === "male") return "сам проявлял агрессию к одноклассникам";
+  if (gender === "female") return "сама проявляла агрессию к одноклассникам";
+  return "сам(а) проявлял(а) агрессию к одноклассникам";
+}
+
+/** @param {"male" | "female" | null} gender */
+function phraseTeacherFavorite(gender) {
+  if (gender === "male") return "был любимчиком у учителей";
+  if (gender === "female") return "была любимицей у учителей";
+  return "был(а) любимчиком(цей) у учителей";
+}
+
+/** @param {"male" | "female" | null} gender */
+function phraseTeacherCriticized(gender) {
+  if (gender === "male") return "часто подвергался критике со стороны учителей";
+  if (gender === "female") return "часто подвергалась критике со стороны учителей";
+  return "часто подвергался(ась) критике со стороны учителей";
+}
+
+/** @param {"male" | "female" | null} gender */
+function phraseDidNotFinishSchool(gender) {
+  if (gender === "male") return "Школу не окончил.";
+  if (gender === "female") return "Школу не окончила.";
+  return "Школу не окончил(а).";
+}
+
+/** @param {"male" | "female" | null} gender */
+function phraseFinishedClasses(gender, n) {
+  if (gender === "male") return `Окончил ${n} классов.`;
+  if (gender === "female") return `Окончила ${n} классов.`;
+  return `Окончил(а) ${n} классов.`;
+}
+
+/** @param {"male" | "female" | null} gender */
+function phraseSmokedPast(gender, years) {
+  if (gender === "male") return years ? `Курение: Курил в прошлом (стаж ${years} лет), бросил.` : "Курение: Курил в прошлом, бросил.";
+  if (gender === "female") return years ? `Курение: Курила в прошлом (стаж ${years} лет), бросила.` : "Курение: Курила в прошлом, бросила.";
+  return years ? `Курение: Курил(а) в прошлом (стаж ${years} лет), бросил(а).` : "Курение: Курил(а) в прошлом, бросил(а).";
+}
+
+/** @param {"male" | "female" | null} gender */
+function phrasePavFrequency(gender, freq) {
+  if (freq === "once_or_twice") {
+    if (gender === "male") return "употреблял 1–2 раза в жизни";
+    if (gender === "female") return "употребляла 1–2 раза в жизни";
+    return "употреблял(а) 1–2 раза в жизни";
+  }
+  if (freq === "episodic") {
+    if (gender === "male") return "употреблял эпизодически";
+    if (gender === "female") return "употребляла эпизодически";
+    return "употреблял(а) эпизодически";
+  }
+  if (freq === "regular_period") return "был период регулярного употребления";
+  return "";
+}
+
+/** @param {"male" | "female" | null} gender */
+function phrasePavTreatment(gender, treatment) {
+  if (treatment === "yes") {
+    if (gender === "male") return "лечение от зависимости проходил";
+    if (gender === "female") return "лечение от зависимости проходила";
+    return "лечение от зависимости проходил(а)";
+  }
+  if (treatment === "no") {
+    if (gender === "male") return "лечение от зависимости не проходил";
+    if (gender === "female") return "лечение от зависимости не проходила";
+    return "лечение от зависимости не проходил(а)";
+  }
+  return "";
 }
 
 /** @param {Record<string, unknown>} state */
@@ -514,7 +818,336 @@ function block3WordLines(state) {
     lines.push("Данные о посещении детского сада отсутствуют.");
   }
 
+  const ch = String(state.childhoodCharacter ?? "").trim();
+  if (!state.childhoodCharacterUnknown && ch) {
+    lines.push(`В детстве характеризует себя как «${ch}».`);
+  }
+
   return lines;
+}
+
+/** @param {Record<string, unknown>} state @param {"male" | "female" | null} gender */
+function block6WordLines(state, gender) {
+  const lines = [];
+  const s1 = [];
+  const sa = String(state.schoolStartAge ?? "").trim();
+  if (sa) s1.push(`В школу ${verbGoToSchoolPast(gender)} с ${sa} лет`);
+
+  const types = [];
+  if (state.schoolTypeGeneral) types.push("школу общеобразовательного типа");
+  if (state.schoolTypeGymnasium) types.push("гимназию");
+  if (state.schoolTypeLyceum) types.push("лицей");
+  if (state.schoolTypeCorrectional) {
+    const d = String(state.schoolTypeCorrectionalDetails ?? "").trim();
+    types.push(d ? `коррекционную школу (со слов: «${d}»)` : "коррекционную школу");
+  }
+  if (types.length === 1) s1.push(`${verbAttendPast(gender)} ${types[0]}`);
+  else if (types.length > 1) s1.push(`${verbAttendPast(gender)} разные типы школ: ${types.join(", ")}`);
+  else if (state.schoolTypeUnknown) s1.push("тип школы не помнит");
+  if (s1.length) lines.push(`${s1.join(", ")}.`);
+
+  if (state.schoolTypeHome) {
+    const from = String(state.schoolTypeHomeFromClass ?? "").trim();
+    const to = String(state.schoolTypeHomeToClass ?? "").trim();
+    const reason = String(state.schoolTypeHomeReason ?? "").trim();
+    let home = `${verbStudiedPast(gender)} на дому`;
+    if (from) home += ` с ${from} класса`;
+    if (to) home += ` по ${to} класс`;
+    if (reason) home += ` по причине ${reason}`;
+    lines.push(`${home}.`);
+  }
+
+  if (state.schoolChanged === "yes") {
+    const reasons = [];
+    if (state.schoolChangeMove) reasons.push("в связи с переездом");
+    if (state.schoolChangeConflictsPeers) reasons.push("из-за конфликтов с одноклассниками");
+    if (state.schoolChangeConflictsTeachers) reasons.push("из-за конфликтов с учителями");
+    if (state.schoolChangePoorPerformance) reasons.push("по причине неуспеваемости");
+    if (state.schoolChangeProfile) reasons.push("для смены профиля обучения");
+    if (state.schoolChangeStronger) reasons.push("переход в более сильную школу");
+    if (state.schoolChangeWeaker) reasons.push("переход в более слабую школу");
+    if (state.schoolChangeExpelled) reasons.push(wasExpelledPhrase(gender));
+    if (state.schoolChangeOther) {
+      const other = String(state.schoolChangeOtherText ?? "").trim();
+      if (other) reasons.push(`по причине: ${other}`);
+    }
+    const freq =
+      state.schoolChangeFrequency === "once"
+        ? verbChangedSchoolOnce(gender)
+        : state.schoolChangeFrequency === "many"
+          ? verbChangedSchoolMany(gender)
+          : gender === "male"
+            ? "менял школу"
+            : gender === "female"
+              ? "меняла школу"
+              : "менял(а) школу";
+    if (reasons.length) lines.push(`${upperFirst(freq)} ${listWithAnd(reasons)}.`);
+    else lines.push(`${upperFirst(freq)}.`);
+  }
+
+  if (state.schoolAdaptation === "no") lines.push("Проблем адаптации не возникало.");
+  if (state.schoolAdaptation === "yes") {
+    const d = String(state.schoolAdaptationDetails ?? "").trim();
+    lines.push(d ? `Наблюдались проблемы адаптации (со слов: «${d}»).` : "Наблюдались проблемы адаптации.");
+  }
+  if (state.schoolAdaptation === "unknown") lines.push("Проблем адаптации не помнит.");
+
+  const perf = schoolPerfLabel(String(state.schoolPerformance ?? ""));
+  if (state.schoolPerformance) {
+    if (state.schoolPerformance === "weakWithDebts") lines.push(`Учился(лась) ${perf}.`);
+    else lines.push(`Учился(лась) как ${perf}.`);
+  }
+
+  const peer = [];
+  if (state.schoolPeerEasyFriends) peer.push("отношения с одноклассниками хорошие");
+  if (state.schoolPeerFewFriends) peer.push("друзей было мало");
+  if (state.schoolPeerCommunicationDifficulties) peer.push("были трудности в общении с одноклассниками");
+  if (state.schoolPeerOutcast) peer.push(phraseOutcast(gender));
+  if (state.schoolPeerBullied) peer.push(phraseBullied(gender));
+  if (state.schoolPeerAggression) peer.push(phraseAggression(gender));
+  if (state.schoolPeerNeutral) peer.push("отношения с одноклассниками нейтральные");
+  const teacher = [];
+  if (state.schoolTeacherOneConflict) teacher.push("были конфликты с учителем");
+  if (state.schoolTeacherManyConflicts) teacher.push("были конфликты с несколькими учителями");
+  if (state.schoolTeacherFavorite) teacher.push(phraseTeacherFavorite(gender));
+  if (state.schoolTeacherCriticized) teacher.push(phraseTeacherCriticized(gender));
+  if (peer.length || teacher.length) {
+    const p = peer.length ? `Отношения с одноклассниками: ${peer.join(", ")}` : "";
+    const t = teacher.length ? `с учителями: ${teacher.join(", ")}` : "";
+    const both = [p, t].filter(Boolean).join("; ");
+    lines.push(`${both}.`);
+  }
+
+  if (state.schoolFinished === "no") lines.push(phraseDidNotFinishSchool(gender));
+  else {
+    const cl = state.schoolClasses;
+    if (cl != null && cl >= 1 && cl <= 11) lines.push(phraseFinishedClasses(gender, cl));
+  }
+  return lines;
+}
+
+/** @param {Record<string, unknown>} state */
+function section2WordLines(state) {
+  const lines = [];
+  const diseaseCodesRaw = Array.isArray(state.section2Diseases) ? state.section2Diseases : [];
+  const diseaseCodes = diseaseCodesRaw.filter((x) => typeof x === "string" && SECTION2_DISEASE_CODES.has(x));
+  const diseaseBits = diseaseCodes
+    .map((code) => {
+      if (code === "e_other") return "";
+      return SECTION2_DISEASE_LABELS[code] ?? "";
+    })
+    .filter(Boolean);
+  if (diseaseCodes.includes("e_other")) {
+    const other = String(state.section2OtherDisease ?? "").trim();
+    if (other) diseaseBits.push(other);
+  }
+  if (!diseaseBits.length) {
+    lines.push("Перенесенные заболевания: Перенесенных заболеваний из списка не отмечено.");
+    return lines;
+  }
+  lines.push(`Перенесенные заболевания: ${listWithAnd(diseaseBits)}.`);
+
+  if (state.section2PsychNone === true) {
+    lines.push("Психических симптомов после заболеваний не отмечалось.");
+    return lines;
+  }
+  const symRaw = Array.isArray(state.section2PsychSymptoms) ? state.section2PsychSymptoms : [];
+  const symCodes = symRaw.filter((x) => typeof x === "string" && SECTION2_SYMPTOM_CODES.has(x));
+  const symBits = symCodes.map((code) => SECTION2_SYMPTOM_LABELS[code]).filter(Boolean);
+  if (symBits.length) lines.push(`На фоне/после заболеваний отмечались: ${listWithAnd(symBits)}.`);
+  return lines;
+}
+
+/** @param {Record<string, unknown>} state */
+function section3WordLines(state) {
+  if (state.operationsHad === "no") return ["Операции: Операций не было."];
+  if (state.operationsHad !== "yes") return [];
+  const raw = Array.isArray(state.operationsList) ? state.operationsList : [];
+  const items = raw
+    .map((it) => {
+      const name = String(it?.name ?? "").trim();
+      const age = String(it?.age ?? "").trim();
+      const an = it?.anesthesia;
+      if (!name || !age) return "";
+      const anText =
+        an === "yes" ? "с наркозом" : an === "no" ? "без наркоза" : an === "unknown" ? "наличие наркоза неизвестно" : "";
+      return anText ? `${name} (в возрасте ${age} лет, ${anText})` : `${name} (в возрасте ${age} лет)`;
+    })
+    .filter(Boolean);
+  if (!items.length) return [];
+  return [`Операции: ${listWithAnd(items)}.`];
+}
+
+/** @param {Record<string, unknown>} state */
+function section4WordLines(state) {
+  if (state.syncopeNoTbiHad === "no") return ["Потери сознания (без ЧМТ): Потерь сознания не было."];
+  if (state.syncopeNoTbiHad !== "yes") return [];
+  const raw = Array.isArray(state.syncopeNoTbiList) ? state.syncopeNoTbiList : [];
+  const items = raw
+    .map((it) => {
+      const age = String(it?.age ?? "").trim();
+      const cause = String(it?.cause ?? "").trim();
+      if (!age) return "";
+      return cause ? `обморок в возрасте ${age} лет (${cause})` : `обморок в возрасте ${age} лет`;
+    })
+    .filter(Boolean);
+  if (!items.length) return [];
+  return [`Потери сознания (без ЧМТ): ${items.join(", ")}.`];
+}
+
+/** @param {Record<string, unknown>} state */
+function section5WordLines(state) {
+  if (state.tbiWithLossHad === "no") return ["ЧМТ с потерей сознания: ЧМТ с потерей сознания отрицает."];
+  if (state.tbiWithLossHad !== "yes") return [];
+  const raw = Array.isArray(state.tbiWithLossList) ? state.tbiWithLossList : [];
+  const cMap = {
+    dtp: "при ДТП",
+    head_hit: "при ударе головой",
+    fall: "при падении",
+    fight: "в драке",
+    unknown: "обстоятельства неизвестны",
+  };
+  const dMap = {
+    seconds: "потеря сознания на секунды",
+    minutes: "потеря сознания на минуты",
+    over_hour: "потеря сознания более чем на час",
+    unknown: "длительность потери сознания неизвестна",
+  };
+  const eMap = {
+    ct: "проводилась КТ",
+    mri: "проводилась МРТ",
+    no: "обследование не проводилось",
+    unknown: "проводилось ли обследование — не помнит",
+  };
+  const items = raw
+    .map((it) => {
+      const age = String(it?.age ?? "").trim();
+      if (!age) return "";
+      const parts = [];
+      if (it?.circumstance && cMap[it.circumstance]) parts.push(cMap[it.circumstance]);
+      if (it?.lossDuration && dMap[it.lossDuration]) parts.push(dMap[it.lossDuration]);
+      if (it?.exam && eMap[it.exam]) parts.push(eMap[it.exam]);
+      return parts.length ? `ЧМТ в возрасте ${age} лет (${parts.join(", ")})` : `ЧМТ в возрасте ${age} лет`;
+    })
+    .filter(Boolean);
+  if (!items.length) return [];
+  return [`ЧМТ с потерей сознания: ${listWithAnd(items)}.`];
+}
+
+/** @param {Record<string, unknown>} state */
+function section6WordLines(state) {
+  if (state.epilepsyStatus === "no") return ["Эпилепсия: Эпилепсия отрицается."];
+  if (state.epilepsyStatus === "unknown") return ["Эпилепсия: Данные об эпилепсии отсутствуют или не подтверждены."];
+  if (state.epilepsyStatus !== "yes") return [];
+  const first =
+    state.epilepsyFirstSeizureType === "birth"
+      ? "первые приступы с рождения"
+      : state.epilepsyFirstSeizureType === "age" && String(state.epilepsyFirstSeizureAge ?? "").trim()
+        ? `первые приступы в возрасте ${String(state.epilepsyFirstSeizureAge).trim()} лет`
+        : "возраст первых приступов не помнит";
+  if (state.epilepsyMedsStatus === "no") return [`Эпилепсия: ${first}. Лекарства не принимает.`];
+  if (state.epilepsyMedsStatus === "yes") {
+    const meds = Array.isArray(state.epilepsyMeds) ? state.epilepsyMeds.filter((x) => typeof x === "string" && x.trim()) : [];
+    if (meds.length) return [`Эпилепсия: ${first}. Принимает противосудорожные препараты: ${listWithAnd(meds)}.`];
+    return [`Эпилепсия: ${first}. Принимает противосудорожные препараты.`];
+  }
+  return [`Эпилепсия: ${first}.`];
+}
+
+/** @param {Record<string, unknown>} state */
+function section7WordLines(state) {
+  if (state.chronicHad === "no") return ["Хронические заболевания: Хронических заболеваний нет."];
+  if (state.chronicHad !== "yes") return [];
+  const d = String(state.chronicDiseasesText ?? "").trim();
+  if (!d) return [];
+  if (state.chronicMedsRegular === "yes") {
+    const m = String(state.chronicMedsText ?? "").trim();
+    return [m ? `Хронические заболевания: ${d}. Регулярно принимает: ${m}.` : `Хронические заболевания: ${d}.`];
+  }
+  if (state.chronicMedsRegular === "no") return [`Хронические заболевания: ${d}. Лекарства регулярно не принимает.`];
+  return [`Хронические заболевания: ${d}.`];
+}
+
+/** @param {Record<string, unknown>} state */
+function section8WordLines(state) {
+  if (state.allergyHad === "no") return ["Аллергические реакции: Аллергии не отмечает."];
+  if (state.allergyHad !== "yes") return [];
+  const arr = Array.isArray(state.allergyList) ? state.allergyList : [];
+  const items = arr
+    .map((it) => {
+      const trig = String(it?.trigger ?? "").trim();
+      const reactions = Array.isArray(it?.reactions) ? it.reactions.filter((x) => typeof x === "string" && x.trim()) : [];
+      if (!trig) return "";
+      const rtxt = reactions.length ? listWithAnd(reactions) : "тип реакции не уточнен";
+      return `аллергия на ${trig} — ${rtxt}`;
+    })
+    .filter(Boolean);
+  if (!items.length) return [];
+  return [`Аллергические реакции: ${items.join("; ")}.`];
+}
+
+/** @param {Record<string, unknown>} state @param {"male" | "female" | null} gender */
+function section9WordLines(state, gender) {
+  if (state.smokingStatus === "no") return ["Курение: Не курит."];
+  if (state.smokingStatus === "past") {
+    const y = String(state.smokingPastYears ?? "").trim();
+    return [phraseSmokedPast(gender, y)];
+  }
+  if (state.smokingStatus !== "yes") return [];
+  const bits = ["Курит"];
+  const y = String(state.smokingCurrentYears ?? "").trim();
+  if (y) bits.push(`стаж ${y} лет`);
+  const c = String(state.smokingCurrentCigs ?? "").trim();
+  if (c) bits.push(c);
+  if (state.smokingUsesVape === "yes") bits.push("также использует электронные сигареты/вейп/IQOS");
+  return [`Курение: ${bits.join(", ")}.`];
+}
+
+/** @param {Record<string, unknown>} state */
+function section10WordLines(state) {
+  if (state.alcoholStatus === "none") return ["Алкоголь: Алкоголь не употребляет."];
+  if (state.alcoholStatus === "rare") {
+    const d = String(state.alcoholRareDrink ?? "").trim();
+    const a = String(state.alcoholRareAmount ?? "").trim();
+    const bits = ["Употребляет редко (1–2 раза в месяц и реже)"];
+    if (d) bits.push(`обычно ${d}`);
+    if (a) bits.push(`в количестве ${a}`);
+    return [`Алкоголь: ${bits.join(", ")}.`];
+  }
+  if (state.alcoholStatus !== "regular") return [];
+  const pref = String(state.alcoholRegularPref ?? "").trim();
+  const amount = String(state.alcoholRegularAmount ?? "").trim();
+  const bits = ["Употребляет регулярно (1–2 раза в неделю и чаще)"];
+  if (pref) bits.push(`предпочитает ${pref}`);
+  if (amount) bits.push(`в количестве ${amount}`);
+  const consequences = [];
+  if (state.alcoholRegularConsequencesHangover) consequences.push("тяжелое похмелье");
+  if (state.alcoholRegularConsequencesMemoryBlackouts) consequences.push("провалы в памяти");
+  if (state.alcoholRegularConsequencesConflicts) consequences.push("конфликты из-за алкоголя");
+  if (state.alcoholRegularConsequencesLaw) consequences.push("проблемы с законом");
+  if (state.alcoholRegularConsequencesNarcologist) consequences.push("обращение за помощью к наркологу");
+  const tail = consequences.length ? ` Отмечались последствия: ${listWithAnd(consequences)}.` : ".";
+  return [`Алкоголь: ${bits.join(", ")}${tail}`];
+}
+
+/** @param {Record<string, unknown>} state @param {"male" | "female" | null} gender */
+function section11WordLines(state, gender) {
+  if (state.pavHad === "no") return ["Употребление ПАВ: Употребление ПАВ отрицает."];
+  if (state.pavHad !== "yes") return [];
+  const raw = Array.isArray(state.pavList) ? state.pavList : [];
+  const items = raw
+    .map((it) => {
+      const s = String(it?.substance ?? "").trim();
+      if (!s) return "";
+      const freq = phrasePavFrequency(gender, it?.frequency);
+      const last = String(it?.lastUse ?? "").trim();
+      const treat = phrasePavTreatment(gender, it?.treatment);
+      const parts = [freq, last ? `последний раз ${last}` : "", treat].filter(Boolean);
+      return parts.length ? `${s} — ${parts.join(", ")}` : s;
+    })
+    .filter(Boolean);
+  if (!items.length) return [];
+  return [`Употребление ПАВ: ${items.join("; ")}.`];
 }
 
 /** @param {"male" | "female" | null} gender */
@@ -546,14 +1179,12 @@ function childhoodVisitSpecialistPhraseForWord(v) {
 
 /** @param {ChildhoodVisit} v */
 function childhoodVisitClauseForWord(v) {
-  if (v.specialist === "custom" && !String(v.customOther ?? "").trim() && !v.reasonUnknown && !String(v.reason ?? "").trim()) {
-    return "";
-  }
+  if (v.specialist === "custom" && !String(v.customOther ?? "").trim()) return "";
   const head = `у ${childhoodVisitSpecialistPhraseForWord(v)}`;
   if (v.reasonUnknown === true) return `${head}, причину не знает`;
   const r = String(v.reason ?? "").trim();
-  if (r) return `${head} по причине ${r}`;
-  return head;
+  if (r) return `${head} по причине «${r}»`;
+  return "";
 }
 
 /**
@@ -567,7 +1198,9 @@ function formatChildhoodSpecialistsLineForWord(state, gender) {
   const list = Array.isArray(state.childhoodVisits) ? /** @type {ChildhoodVisit[]} */ (state.childhoodVisits) : [];
   const clauses = list.map(childhoodVisitClauseForWord).filter(Boolean);
   if (!clauses.length) return "";
-  return `В детстве ${childhoodObservedVerbPast(gender)} ${clauses.join(", ")}.`;
+  if (clauses.length === 1) return `В детстве ${childhoodObservedVerbPast(gender)} ${clauses[0]}.`;
+  if (clauses.length === 2) return `В детстве ${childhoodObservedVerbPast(gender)} ${clauses[0]} и ${clauses[1]}.`;
+  return `В детстве ${childhoodObservedVerbPast(gender)} ${clauses.slice(0, -1).join(", ")} и ${clauses[clauses.length - 1]}.`;
 }
 
 /**
@@ -613,27 +1246,33 @@ export function formatLifeStructuredForWord(state, gender) {
 
   const chLine = formatChildhoodSpecialistsLineForWord(state, gender);
   if (chLine) lines.push(chLine);
-
-  const sa = String(state.schoolStartAge ?? "").trim();
-  const perf = schoolPerfLabel(String(state.schoolPerformance ?? ""));
-  const cl = state.schoolClasses;
-  const schoolBits = [];
-  if (sa) schoolBits.push(`в школу пошёл(ла) с ${sa} лет`);
-  if (state.schoolPerformance) schoolBits.push(`учился(лась) как ${perf}`);
-  if (cl != null && cl >= 1 && cl <= 11) schoolBits.push(`окончил(а) ${cl} классов`);
-  if (schoolBits.length) lines.push(`Школа: ${schoolBits.join("; ")}.`);
+  lines.push(...block6WordLines(state, gender));
 
   if (gender === "male") {
     if (state.army === "served") lines.push("Армия: служил.");
     if (state.army === "not") lines.push("Армия: не служил.");
   }
 
-  const edu = [];
-  if (state.eduSecDone) edu.push(`среднее образование — законченное${state.eduSecSpec ? ` (${String(state.eduSecSpec).trim()})` : ""}`);
-  if (state.eduSecUndone) edu.push(`среднее образование — незаконченное${state.eduSecSpec ? ` (${String(state.eduSecSpec).trim()})` : ""}`);
-  if (state.eduHiDone) edu.push(`высшее образование — законченное${state.eduHiSpec ? ` (${String(state.eduHiSpec).trim()})` : ""}`);
-  if (state.eduHiUndone) edu.push(`высшее образование — незаконченное${state.eduHiSpec ? ` (${String(state.eduHiSpec).trim()})` : ""}`);
-  if (edu.length) lines.push(`Образование: ${edu.join("; ")}.`);
+  if (state.eduNoAfterSchool) {
+    lines.push("После школы высшее и среднее образование не получал.");
+  } else {
+    const edu = [];
+    if (state.eduSecDone) edu.push(`среднее образование — законченное${state.eduSecSpec ? ` (${String(state.eduSecSpec).trim()})` : ""}`);
+    if (state.eduSecUndone) edu.push(`среднее образование — незаконченное${state.eduSecSpec ? ` (${String(state.eduSecSpec).trim()})` : ""}`);
+    if (state.eduHiDone) edu.push(`высшее образование — законченное${state.eduHiSpec ? ` (${String(state.eduHiSpec).trim()})` : ""}`);
+    if (state.eduHiUndone) edu.push(`высшее образование — незаконченное${state.eduHiSpec ? ` (${String(state.eduHiSpec).trim()})` : ""}`);
+    if (edu.length) lines.push(`Образование: ${edu.join("; ")}.`);
+  }
+  lines.push(...section2WordLines(state));
+  lines.push(...section3WordLines(state));
+  lines.push(...section4WordLines(state));
+  lines.push(...section5WordLines(state));
+  lines.push(...section6WordLines(state));
+  lines.push(...section7WordLines(state));
+  lines.push(...section8WordLines(state));
+  lines.push(...section9WordLines(state, gender));
+  lines.push(...section10WordLines(state));
+  lines.push(...section11WordLines(state, gender));
 
   return lines.join("\n").trim();
 }
@@ -716,11 +1355,6 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
     intro.textContent = step.blockLead.intro;
     contentEl.appendChild(intro);
   }
-  const h3 = document.createElement("h3");
-  h3.className = "mh-question-title";
-  h3.textContent = "Были ли у Ваших родственников установленные расстройства психики?";
-  contentEl.appendChild(h3);
-
   function fieldset(title) {
     const fs = document.createElement("fieldset");
     fs.className = "mh-life-fieldset";
@@ -744,11 +1378,35 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
     return lab;
   }
 
+  const uiEnuresisYes = gender === "female" ? "Да, была" : gender === "male" ? "Да, был" : "Да, был(а)";
+  const uiKdgYes = gender === "female" ? "Да, посещала" : gender === "male" ? "Да, посещал" : "Да, посещал(а)";
+  const uiKdgNo =
+    gender === "female"
+      ? "Нет, не посещала (воспитывалась дома)"
+      : gender === "male"
+        ? "Нет, не посещал (воспитывался дома)"
+        : "Нет, не посещал(а) (воспитывался(ась) дома)";
+  const uiAdapted =
+    gender === "female"
+      ? "Адаптировалась без особенностей"
+      : gender === "male"
+        ? "Адаптировался без особенностей"
+        : "Адаптировался(ась) без особенностей";
+  const uiCharacterQ =
+    gender === "female"
+      ? "Вопрос 7. Какой Вы были по характеру в детстве?"
+      : gender === "male"
+        ? "Вопрос 7. Каким Вы были по характеру в детстве?"
+        : "Вопрос 7. Каким(ой) Вы были по характеру в детстве?";
+  const uiSchoolFinishedYes = gender === "female" ? "Окончила школу" : gender === "male" ? "Окончил школу" : "Окончил(а) школу";
+  const uiSchoolFinishedNo =
+    gender === "female" ? "Не окончила школу" : gender === "male" ? "Не окончил школу" : "Не окончил(а) школу";
+  const uiSmokingPast = gender === "female" ? "Бросила" : gender === "male" ? "Бросил" : "Бросил(а)";
+
   const fs0 = fieldset("Ответ");
   fs0.appendChild(radioRow("mh-life-heredity", "yes", "Да", state.heredity === "yes"));
   fs0.appendChild(radioRow("mh-life-heredity", "no", "Нет", state.heredity === "no"));
   fs0.appendChild(radioRow("mh-life-heredity", "unknown", "Не знаю", state.heredity === "unknown"));
-  contentEl.appendChild(fs0);
 
   const cases = Array.isArray(state.heredityCases) ? /** @type {HeredityCase[]} */ (state.heredityCases) : [];
   const draftClosed = state.heredity === "yes" && state.heredityCloseDraft === true;
@@ -816,7 +1474,6 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   listActions.appendChild(btnReopenDraft);
   listPanel.appendChild(listActions);
 
-  contentEl.appendChild(listPanel);
 
   const yesBlock = document.createElement("div");
   yesBlock.id = "mh-life-yes-block";
@@ -929,8 +1586,6 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
 
   yesBlock.appendChild(draftWrap);
 
-  contentEl.appendChild(yesBlock);
-
   function setHeredityCloseDraft(flag) {
     readLifeStructuredFromDom(contentEl, answers);
     const st = parseLifeStructuredString(answers[LIFE_STRUCTURED_ID]);
@@ -956,6 +1611,14 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   btnReopenDraft.addEventListener("click", () => setHeredityCloseDraft(false));
 
   const fsB2 = fieldset("Блок 2. Рождение и семья");
+  const qH = document.createElement("p");
+  qH.className = "mh-life-edu-title";
+  qH.textContent = "Были ли у Ваших родственников установленные расстройства психики?";
+  fsB2.appendChild(qH);
+  fsB2.appendChild(fs0);
+  fsB2.appendChild(listPanel);
+  fsB2.appendChild(yesBlock);
+
   const q2a = document.createElement("p");
   q2a.className = "mh-life-edu-title";
   q2a.textContent = "Вы родились в полной семье?";
@@ -1009,7 +1672,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
 
   const q3 = document.createElement("p");
   q3.className = "mh-life-edu-title";
-  q3.textContent = "3 вопрос. Срок родов:";
+  q3.textContent = "3 вопрос. В какой срок Вы родились?";
   fsB2.appendChild(q3);
   fsB2.appendChild(radioRow("mh-life-birth-term", "term", "в срок (37-42 недели)", state.birthTerm === "term"));
   fsB2.appendChild(
@@ -1022,10 +1685,11 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
 
   const q4 = document.createElement("p");
   q4.className = "mh-life-edu-title";
-  q4.textContent = "4 вопрос. Роды были?";
+  q4.textContent = "5 вопрос. Как протекали роды?";
   fsB2.appendChild(q4);
   fsB2.appendChild(radioRow("mh-life-birth-delivery", "self", "Самостоятельные", state.birthDelivery === "self"));
   fsB2.appendChild(radioRow("mh-life-birth-delivery", "cesarean", "Кесарево сечение", state.birthDelivery === "cesarean"));
+  fsB2.appendChild(radioRow("mh-life-birth-delivery", "unknown", "Не знаю", state.birthDelivery === "unknown"));
 
   const q5 = document.createElement("p");
   q5.className = "mh-life-edu-title";
@@ -1114,9 +1778,9 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
 
   const q32 = document.createElement("p");
   q32.className = "mh-life-edu-title";
-  q32.textContent = "Вопрос 2. Были ли энурез (недержание мочи) после 5 лет?";
+  q32.textContent = "Вопрос 2. Был ли энурез (недержание мочи) после 5 лет?";
   fsB3.appendChild(q32);
-  fsB3.appendChild(radioRow("mh-life-enuresis", "yes", "Да, был", state.enuresisAfter5 === "yes"));
+  fsB3.appendChild(radioRow("mh-life-enuresis", "yes", uiEnuresisYes, state.enuresisAfter5 === "yes"));
   fsB3.appendChild(radioRow("mh-life-enuresis", "no", "Нет", state.enuresisAfter5 === "no"));
   fsB3.appendChild(radioRow("mh-life-enuresis", "unknown", "Не знаю", state.enuresisAfter5 === "unknown"));
 
@@ -1163,8 +1827,8 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   q34.className = "mh-life-edu-title";
   q34.textContent = "Вопрос 4. Посещали ли Вы детский сад?";
   fsB3.appendChild(q34);
-  fsB3.appendChild(radioRow("mh-life-kdg", "yes", "Да, посещал", state.kindergartenAttend === "yes"));
-  fsB3.appendChild(radioRow("mh-life-kdg", "no", "Нет, не посещал (воспитывался дома)", state.kindergartenAttend === "no"));
+  fsB3.appendChild(radioRow("mh-life-kdg", "yes", uiKdgYes, state.kindergartenAttend === "yes"));
+  fsB3.appendChild(radioRow("mh-life-kdg", "no", uiKdgNo, state.kindergartenAttend === "no"));
   fsB3.appendChild(radioRow("mh-life-kdg", "unknown", "Не знаю", state.kindergartenAttend === "unknown"));
 
   const q35Wrap = document.createElement("div");
@@ -1175,7 +1839,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   q35.textContent = "Вопрос 5. Как Вы адаптировались к детскому саду?";
   q35Wrap.appendChild(q35);
   q35Wrap.appendChild(
-    radioRow("mh-life-kdg-adapt", "easy", "Адаптировался без особенностей", state.kindergartenAdapt === "easy")
+    radioRow("mh-life-kdg-adapt", "easy", uiAdapted, state.kindergartenAdapt === "easy")
   );
   q35Wrap.appendChild(
     radioRow(
@@ -1220,11 +1884,42 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
     });
   });
 
-  contentEl.appendChild(fsB3);
+  const q37 = document.createElement("p");
+  q37.className = "mh-life-edu-title";
+  q37.textContent = uiCharacterQ;
+  fsB3.appendChild(q37);
+  const charRow = document.createElement("div");
+  charRow.className = "mh-life-row";
+  charRow.appendChild(document.createTextNode("Поле ввода: "));
+  const charInp = document.createElement("input");
+  charInp.type = "text";
+  charInp.id = "mh-life-child-character";
+  charInp.className = "mh-life-text";
+  charInp.placeholder = "например: спокойным, общительным, тревожным";
+  charInp.value = state.childhoodCharacterUnknown ? "" : String(state.childhoodCharacter ?? "");
+  charInp.disabled = Boolean(state.childhoodCharacterUnknown);
+  charRow.appendChild(charInp);
+  fsB3.appendChild(charRow);
+  const charUnLab = document.createElement("label");
+  charUnLab.className = "mh-life-check";
+  const charUn = document.createElement("input");
+  charUn.type = "checkbox";
+  charUn.id = "mh-life-child-character-unknown";
+  charUn.checked = Boolean(state.childhoodCharacterUnknown);
+  charUnLab.appendChild(charUn);
+  charUnLab.appendChild(document.createTextNode(" Затрудняюсь ответить"));
+  fsB3.appendChild(charUnLab);
+  charUn.addEventListener("change", () => {
+    charInp.disabled = charUn.checked;
+    if (charUn.checked) charInp.value = "";
+  });
 
-  const fsB4 = fieldset("Блок 4. Наблюдались ли вы у специалистов в детстве?");
-  fsB4.appendChild(radioRow("mh-life-childhood", "yes", "Да", state.childhoodSpecialists === "yes"));
-  fsB4.appendChild(radioRow("mh-life-childhood", "no", "Нет", state.childhoodSpecialists === "no"));
+  const q36 = document.createElement("p");
+  q36.className = "mh-life-edu-title";
+  q36.textContent = "Вопрос 6. Наблюдались ли вы у специалистов в детстве?";
+  fsB3.appendChild(q36);
+  fsB3.appendChild(radioRow("mh-life-childhood", "yes", "Да", state.childhoodSpecialists === "yes"));
+  fsB3.appendChild(radioRow("mh-life-childhood", "no", "Нет", state.childhoodSpecialists === "no"));
 
   const chYesWrap = document.createElement("div");
   chYesWrap.id = "mh-life-childhood-yes-wrap";
@@ -1250,11 +1945,15 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   );
 
   function reflowChildhood(mutator) {
+    const prevScrollY = window.scrollY;
     readLifeStructuredFromDom(contentEl, answers);
     const st = parseLifeStructuredString(answers[LIFE_STRUCTURED_ID]);
     mutator(st);
     answers[LIFE_STRUCTURED_ID] = JSON.stringify(st);
     renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, gender, nextWizardBtn);
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: prevScrollY });
+    });
   }
 
   /** @param {ChildhoodVisit} v @param {number} idx @param {number} total */
@@ -1371,24 +2070,60 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
       st.childhoodVisits = arr;
     });
   });
-  chYesWrap.appendChild(addChBtn);
+  const chActions = document.createElement("div");
+  chActions.className = "mh-life-heredity-actions";
+  chActions.appendChild(addChBtn);
+  const btnFinishChildhood = document.createElement("button");
+  btnFinishChildhood.type = "button";
+  btnFinishChildhood.className = "mh-life-heredity-icon-btn mh-life-heredity-icon-btn--ok";
+  btnFinishChildhood.textContent = "✓";
+  btnFinishChildhood.setAttribute("aria-label", "Завершить ввод специалистов");
+  btnFinishChildhood.title = "Завершить ввод специалистов";
+  btnFinishChildhood.addEventListener("click", () => {
+    reflowChildhood((st) => {
+      const arr = normalizeChildhoodVisits(readChildhoodVisitsFromDom(contentEl)).filter((v) => {
+        if (v.specialist === "custom" && !String(v.customOther ?? "").trim()) return false;
+        if (v.reasonUnknown) return true;
+        return Boolean(String(v.reason ?? "").trim());
+      });
+      st.childhoodVisits = arr;
+    });
+  });
+  chActions.appendChild(btnFinishChildhood);
+  const btnCancelChildhood = document.createElement("button");
+  btnCancelChildhood.type = "button";
+  btnCancelChildhood.className = "mh-life-heredity-icon-btn mh-life-heredity-icon-btn--clear";
+  btnCancelChildhood.textContent = "✗";
+  btnCancelChildhood.setAttribute("aria-label", "Отменить и очистить список специалистов");
+  btnCancelChildhood.title = "Отменить и очистить список специалистов";
+  btnCancelChildhood.addEventListener("click", () => {
+    reflowChildhood((st) => {
+      st.childhoodVisits = [{ specialist: "neuro", customOther: "", reason: "", reasonUnknown: false }];
+    });
+  });
+  chActions.appendChild(btnCancelChildhood);
+  chYesWrap.appendChild(chActions);
 
-  fsB4.appendChild(chYesWrap);
+  fsB3.appendChild(chYesWrap);
 
-  fsB4.querySelectorAll('input[name="mh-life-childhood"]').forEach((el) => {
+  fsB3.querySelectorAll('input[name="mh-life-childhood"]').forEach((el) => {
     el.addEventListener("change", () => {
       const inp = contentEl.querySelector('input[name="mh-life-childhood"]:checked');
       chYesWrap.hidden = !(inp instanceof HTMLInputElement && inp.value === "yes");
     });
   });
 
-  contentEl.appendChild(fsB4);
+  contentEl.appendChild(fsB3);
 
   const fsB6 = fieldset("Блок 6. Школа");
+  const q61 = document.createElement("p");
+  q61.className = "mh-life-edu-title";
+  q61.textContent = "Вопрос 1. Со скольки лет пошли в первый класс?";
+  fsB6.appendChild(q61);
   const rowAge = document.createElement("div");
   rowAge.className = "mh-life-row";
   const labAge = document.createElement("label");
-  labAge.appendChild(document.createTextNode("В школу пошёл с "));
+  labAge.appendChild(document.createTextNode("В школу пошёл(ла) с "));
   const ageInp = document.createElement("input");
   ageInp.type = "text";
   ageInp.inputMode = "numeric";
@@ -1399,18 +2134,193 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   labAge.appendChild(document.createTextNode(" лет"));
   rowAge.appendChild(labAge);
   fsB6.appendChild(rowAge);
-  const rowPerf = document.createElement("div");
-  rowPerf.className = "mh-life-row";
-  rowPerf.appendChild(document.createTextNode("Как учился: "));
+
+  const q62 = document.createElement("p");
+  q62.className = "mh-life-edu-title";
+  q62.textContent = "Вопрос 2. Какой тип школы Вы посещали?";
+  fsB6.appendChild(q62);
+  fsB6.appendChild(mkCheck("mh-life-school-type-general", "Общеобразовательная", state.schoolTypeGeneral));
+  fsB6.appendChild(mkCheck("mh-life-school-type-gym", "Гимназия", state.schoolTypeGymnasium));
+  fsB6.appendChild(mkCheck("mh-life-school-type-lyceum", "Лицей", state.schoolTypeLyceum));
+  fsB6.appendChild(mkCheck("mh-life-school-type-corr", "Коррекционная", state.schoolTypeCorrectional));
+  const corrRow = document.createElement("div");
+  corrRow.className = "mh-life-row";
+  corrRow.hidden = !state.schoolTypeCorrectional;
+  corrRow.appendChild(document.createTextNode("Уточните тип коррекционной школы: "));
+  const corrInp = document.createElement("input");
+  corrInp.type = "text";
+  corrInp.id = "mh-life-school-corr-details";
+  corrInp.className = "mh-life-text";
+  corrInp.value = String(state.schoolTypeCorrectionalDetails ?? "");
+  corrRow.appendChild(corrInp);
+  fsB6.appendChild(corrRow);
+  const corrCb = fsB6.querySelector("#mh-life-school-type-corr");
+  if (corrCb instanceof HTMLInputElement) {
+    corrCb.addEventListener("change", () => {
+      corrRow.hidden = !corrCb.checked;
+      if (!corrCb.checked) corrInp.value = "";
+    });
+  }
+
+  fsB6.appendChild(mkCheck("mh-life-school-type-home", "Обучался на дому", state.schoolTypeHome));
+  const homeWrap = document.createElement("div");
+  homeWrap.className = "mh-life-early-sub";
+  homeWrap.hidden = !state.schoolTypeHome;
+  const homeFrom = document.createElement("input");
+  homeFrom.type = "text";
+  homeFrom.inputMode = "numeric";
+  homeFrom.className = "mh-life-text mh-life-text--narrow";
+  homeFrom.id = "mh-life-school-home-from";
+  homeFrom.value = String(state.schoolTypeHomeFromClass ?? "");
+  const homeTo = document.createElement("input");
+  homeTo.type = "text";
+  homeTo.inputMode = "numeric";
+  homeTo.className = "mh-life-text mh-life-text--narrow";
+  homeTo.id = "mh-life-school-home-to";
+  homeTo.value = String(state.schoolTypeHomeToClass ?? "");
+  const homeReason = document.createElement("input");
+  homeReason.type = "text";
+  homeReason.className = "mh-life-text";
+  homeReason.id = "mh-life-school-home-reason";
+  homeReason.value = String(state.schoolTypeHomeReason ?? "");
+  const homeRow1 = document.createElement("div");
+  homeRow1.className = "mh-life-row";
+  homeRow1.appendChild(document.createTextNode("С какого класса: "));
+  homeRow1.appendChild(homeFrom);
+  homeWrap.appendChild(homeRow1);
+  const homeRow2 = document.createElement("div");
+  homeRow2.className = "mh-life-row";
+  homeRow2.appendChild(document.createTextNode("По какой класс: "));
+  homeRow2.appendChild(homeTo);
+  homeWrap.appendChild(homeRow2);
+  const homeRow3 = document.createElement("div");
+  homeRow3.className = "mh-life-row";
+  homeRow3.appendChild(document.createTextNode("По какой причине: "));
+  homeRow3.appendChild(homeReason);
+  homeWrap.appendChild(homeRow3);
+  fsB6.appendChild(homeWrap);
+  const homeCb = fsB6.querySelector("#mh-life-school-type-home");
+  if (homeCb instanceof HTMLInputElement) {
+    homeCb.addEventListener("change", () => {
+      homeWrap.hidden = !homeCb.checked;
+      if (!homeCb.checked) {
+        homeFrom.value = "";
+        homeTo.value = "";
+        homeReason.value = "";
+      }
+    });
+  }
+  fsB6.appendChild(mkCheck("mh-life-school-type-unknown", "Не знаю", state.schoolTypeUnknown));
+
+  const q63 = document.createElement("p");
+  q63.className = "mh-life-edu-title";
+  q63.textContent = "Вопрос 3. Была ли у Вас смена школы в процессе обучения?";
+  fsB6.appendChild(q63);
+  fsB6.appendChild(radioRow("mh-life-school-change", "yes", "Да", state.schoolChanged === "yes"));
+  fsB6.appendChild(radioRow("mh-life-school-change", "no", "Нет", state.schoolChanged === "no"));
+  const changeWrap = document.createElement("div");
+  changeWrap.className = "mh-life-early-sub";
+  changeWrap.hidden = state.schoolChanged !== "yes";
+  const q64 = document.createElement("p");
+  q64.className = "mh-life-edu-title";
+  q64.textContent = "Вопрос 4. Если была смена школы, укажите частоту и причину (можно несколько)";
+  changeWrap.appendChild(q64);
+  changeWrap.appendChild(radioRow("mh-life-school-change-freq", "once", "однократно", state.schoolChangeFrequency === "once"));
+  changeWrap.appendChild(
+    radioRow("mh-life-school-change-freq", "many", "неоднократно", state.schoolChangeFrequency === "many")
+  );
+  changeWrap.appendChild(mkCheck("mh-life-school-change-move", "Переезд семьи", state.schoolChangeMove));
+  changeWrap.appendChild(
+    mkCheck("mh-life-school-change-conf-peers", "Конфликты с одноклассниками", state.schoolChangeConflictsPeers)
+  );
+  changeWrap.appendChild(
+    mkCheck("mh-life-school-change-conf-teachers", "Конфликты с учителями", state.schoolChangeConflictsTeachers)
+  );
+  changeWrap.appendChild(mkCheck("mh-life-school-change-poor", "Неуспеваемость", state.schoolChangePoorPerformance));
+  changeWrap.appendChild(mkCheck("mh-life-school-change-profile", "Смена профиля обучения", state.schoolChangeProfile));
+  changeWrap.appendChild(
+    mkCheck("mh-life-school-change-stronger", "Переход в более сильную школу", state.schoolChangeStronger)
+  );
+  changeWrap.appendChild(mkCheck("mh-life-school-change-weaker", "Переход в более слабую школу", state.schoolChangeWeaker));
+  changeWrap.appendChild(mkCheck("mh-life-school-change-expelled", "Отчисление", state.schoolChangeExpelled));
+  changeWrap.appendChild(mkCheck("mh-life-school-change-other", "Другое", state.schoolChangeOther));
+  const changeOtherRow = document.createElement("div");
+  changeOtherRow.className = "mh-life-row";
+  changeOtherRow.hidden = !state.schoolChangeOther;
+  changeOtherRow.appendChild(document.createTextNode("Уточнение (другое): "));
+  const changeOtherInp = document.createElement("input");
+  changeOtherInp.type = "text";
+  changeOtherInp.id = "mh-life-school-change-other-text";
+  changeOtherInp.className = "mh-life-text";
+  changeOtherInp.value = String(state.schoolChangeOtherText ?? "");
+  changeOtherRow.appendChild(changeOtherInp);
+  changeWrap.appendChild(changeOtherRow);
+  const changeOtherCb = changeWrap.querySelector("#mh-life-school-change-other");
+  if (changeOtherCb instanceof HTMLInputElement) {
+    changeOtherCb.addEventListener("change", () => {
+      changeOtherRow.hidden = !changeOtherCb.checked;
+      if (!changeOtherCb.checked) changeOtherInp.value = "";
+    });
+  }
+  fsB6.appendChild(changeWrap);
+  fsB6.querySelectorAll('input[name="mh-life-school-change"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const chSel = fsB6.querySelector('input[name="mh-life-school-change"]:checked');
+      const show = chSel instanceof HTMLInputElement && chSel.value === "yes";
+      changeWrap.hidden = !show;
+      if (!show) {
+        changeWrap.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+          if (cb instanceof HTMLInputElement) cb.checked = false;
+        });
+        changeWrap.querySelectorAll('input[name="mh-life-school-change-freq"]').forEach((r) => {
+          if (r instanceof HTMLInputElement) r.checked = false;
+        });
+        changeOtherInp.value = "";
+      }
+    });
+  });
+
+  const q65 = document.createElement("p");
+  q65.className = "mh-life-edu-title";
+  q65.textContent = "Вопрос 5. Были ли у Вас проблемы адаптации при поступлении или при переходе в другую школу?";
+  fsB6.appendChild(q65);
+  fsB6.appendChild(radioRow("mh-life-school-adapt", "yes", "Да, были трудности", state.schoolAdaptation === "yes"));
+  fsB6.appendChild(radioRow("mh-life-school-adapt", "no", "Нет", state.schoolAdaptation === "no"));
+  fsB6.appendChild(radioRow("mh-life-school-adapt", "unknown", "Не помню", state.schoolAdaptation === "unknown"));
+  const adaptSchoolRow = document.createElement("div");
+  adaptSchoolRow.className = "mh-life-row";
+  adaptSchoolRow.hidden = state.schoolAdaptation !== "yes";
+  adaptSchoolRow.appendChild(document.createTextNode("Со слов пациента: "));
+  const adaptSchoolInp = document.createElement("input");
+  adaptSchoolInp.type = "text";
+  adaptSchoolInp.id = "mh-life-school-adapt-details";
+  adaptSchoolInp.className = "mh-life-text";
+  adaptSchoolInp.value = String(state.schoolAdaptationDetails ?? "");
+  adaptSchoolRow.appendChild(adaptSchoolInp);
+  fsB6.appendChild(adaptSchoolRow);
+  fsB6.querySelectorAll('input[name="mh-life-school-adapt"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const a = fsB6.querySelector('input[name="mh-life-school-adapt"]:checked');
+      const show = a instanceof HTMLInputElement && a.value === "yes";
+      adaptSchoolRow.hidden = !show;
+      if (!show) adaptSchoolInp.value = "";
+    });
+  });
+
+  const q66 = document.createElement("p");
+  q66.className = "mh-life-edu-title";
+  q66.textContent = "Вопрос 6. Как Вы учились в школе (средняя успеваемость за весь период)?";
+  fsB6.appendChild(q66);
   const perfSel = document.createElement("select");
   perfSel.id = "mh-life-school-perf";
   perfSel.className = "mh-life-select";
   [
     ["", "—"],
-    ["udarnik", "ударник"],
-    ["otlichnik", "отличник"],
-    ["horoshist", "хорошист"],
-    ["troechnik", "троечник"],
+    ["excellent", "Отличник (почти одни пятёрки)"],
+    ["good4and5", "Ударник (одни четвёрки и пятёрки)"],
+    ["mostly4", "Хорошист (преимущественно четвёрки с редкими тройками)"],
+    ["mostly3", "Троечник (преимущественно тройки)"],
+    ["weakWithDebts", "Были двойки и академические задолженности"],
   ].forEach(([v, t]) => {
     const o = document.createElement("option");
     o.value = v;
@@ -1418,10 +2328,51 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
     if (state.schoolPerformance === v) o.selected = true;
     perfSel.appendChild(o);
   });
-  rowPerf.appendChild(perfSel);
-  fsB6.appendChild(rowPerf);
+  fsB6.appendChild(perfSel);
+
+  const q67 = document.createElement("p");
+  q67.className = "mh-life-edu-title";
+  q67.textContent = "Вопрос 7. Как складывались Ваши социальные отношения в школе?";
+  fsB6.appendChild(q67);
+  const p71 = document.createElement("p");
+  p71.className = "mh-life-hint";
+  p71.textContent = "7.1. С одноклассниками (можно выбрать несколько):";
+  fsB6.appendChild(p71);
+  fsB6.appendChild(mkCheck("mh-life-peer-easy", "Легко находил друзей", state.schoolPeerEasyFriends));
+  fsB6.appendChild(mkCheck("mh-life-peer-few", "Друзей было мало", state.schoolPeerFewFriends));
+  fsB6.appendChild(
+    mkCheck("mh-life-peer-diff", "Были трудности в общении", state.schoolPeerCommunicationDifficulties)
+  );
+  fsB6.appendChild(mkCheck("mh-life-peer-outcast", "Был изгоем / отвергаемым", state.schoolPeerOutcast));
+  fsB6.appendChild(mkCheck("mh-life-peer-bullied", "Подвергался буллингу (травле)", state.schoolPeerBullied));
+  fsB6.appendChild(mkCheck("mh-life-peer-aggr", "Сам проявлял агрессию к другим", state.schoolPeerAggression));
+  fsB6.appendChild(mkCheck("mh-life-peer-neutral", "Отношения нейтральные", state.schoolPeerNeutral));
+  const p72 = document.createElement("p");
+  p72.className = "mh-life-hint";
+  p72.textContent = "7.2. С учителями (можно выбрать несколько):";
+  fsB6.appendChild(p72);
+  fsB6.appendChild(mkCheck("mh-life-teacher-even", "Отношения были ровными", state.schoolTeacherEven));
+  fsB6.appendChild(
+    mkCheck("mh-life-teacher-one-conf", "Были конфликты с конкретным учителем", state.schoolTeacherOneConflict)
+  );
+  fsB6.appendChild(
+    mkCheck("mh-life-teacher-many-conf", "Конфликты с несколькими учителями", state.schoolTeacherManyConflicts)
+  );
+  fsB6.appendChild(mkCheck("mh-life-teacher-fav", "Был любимчиком", state.schoolTeacherFavorite));
+  fsB6.appendChild(
+    mkCheck("mh-life-teacher-crit", "Был объектом критики / придирок", state.schoolTeacherCriticized)
+  );
+  fsB6.appendChild(mkCheck("mh-life-teacher-neutral", "Отношения нейтральные", state.schoolTeacherNeutral));
+
+  const q68 = document.createElement("p");
+  q68.className = "mh-life-edu-title";
+  q68.textContent = "Сколько классов школы Вы окончили?";
+  fsB6.appendChild(q68);
+  fsB6.appendChild(radioRow("mh-life-school-finished", "yes", uiSchoolFinishedYes, state.schoolFinished === "yes"));
+  fsB6.appendChild(radioRow("mh-life-school-finished", "no", uiSchoolFinishedNo, state.schoolFinished === "no"));
   const rowCl = document.createElement("div");
   rowCl.className = "mh-life-row";
+  rowCl.hidden = state.schoolFinished === "no";
   rowCl.appendChild(document.createTextNode("Сколько классов окончил: "));
   const clSel = document.createElement("select");
   clSel.id = "mh-life-school-classes";
@@ -1439,6 +2390,14 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   }
   rowCl.appendChild(clSel);
   fsB6.appendChild(rowCl);
+  fsB6.querySelectorAll('input[name="mh-life-school-finished"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const sf = fsB6.querySelector('input[name="mh-life-school-finished"]:checked');
+      const finishedNo = sf instanceof HTMLInputElement && sf.value === "no";
+      rowCl.hidden = finishedNo;
+      if (finishedNo) clSel.value = "";
+    });
+  });
   contentEl.appendChild(fsB6);
 
   if (gender === "male") {
@@ -1449,9 +2408,978 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   }
 
   const fsB8 = fieldset("Блок 8. Образование");
-  fsB8.appendChild(subEdu("Среднее", "sec", state));
-  fsB8.appendChild(subEdu("Высшее", "hi", state));
+  const eduNoneLab = mkCheck(
+    "mh-life-edu-none-after-school",
+    "Не получал образование после школы",
+    state.eduNoAfterSchool
+  );
+  fsB8.appendChild(eduNoneLab);
+  const eduWrap = document.createElement("div");
+  eduWrap.id = "mh-life-edu-wrap";
+  eduWrap.hidden = Boolean(state.eduNoAfterSchool);
+  eduWrap.appendChild(subEdu("Среднее", "sec", state));
+  eduWrap.appendChild(subEdu("Высшее", "hi", state));
+  fsB8.appendChild(eduWrap);
+  const eduNoneCb = fsB8.querySelector("#mh-life-edu-none-after-school");
+  if (eduNoneCb instanceof HTMLInputElement) {
+    eduNoneCb.addEventListener("change", () => {
+      eduWrap.hidden = eduNoneCb.checked;
+      if (eduNoneCb.checked) {
+        eduWrap.querySelectorAll('input[type="radio"]').forEach((el) => {
+          if (el instanceof HTMLInputElement) el.checked = false;
+        });
+        eduWrap.querySelectorAll('input[type="text"]').forEach((el) => {
+          if (el instanceof HTMLInputElement) el.value = "";
+        });
+      }
+    });
+  }
   contentEl.appendChild(fsB8);
+
+  const fsB9 = fieldset("Блок 9. Перенесенные заболевания");
+  const q21 = document.createElement("p");
+  q21.className = "mh-life-edu-title";
+  q21.textContent = "Вопрос 2.1. Переносили ли Вы какие-либо из перечисленных заболеваний или состояний?";
+  fsB9.appendChild(q21);
+  const mkDisease = (id, label, checked) => {
+    const lab = mkCheck(id, label, checked);
+    fsB9.appendChild(lab);
+    return lab;
+  };
+  const hA = document.createElement("p");
+  hA.className = "mh-life-hint";
+  hA.textContent = "Группа А (нейроинфекции и поражения ЦНС)";
+  fsB9.appendChild(hA);
+  mkDisease("mh-life-s2-a-meningitis", "Менингит", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("a_meningitis"));
+  mkDisease("mh-life-s2-a-encephalitis", "Энцефалит", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("a_encephalitis"));
+  mkDisease("mh-life-s2-a-neurosyphilis", "Нейросифилис", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("a_neurosyphilis"));
+  mkDisease("mh-life-s2-a-hiv", "ВИЧ-инфекция", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("a_hiv"));
+  mkDisease(
+    "mh-life-s2-a-toxo",
+    "Токсоплазмоз (с поражением нервной системы)",
+    Array.isArray(state.section2Diseases) && state.section2Diseases.includes("a_toxoplasmosis_cns")
+  );
+  mkDisease("mh-life-s2-a-lyme", "Болезнь Лайма (нейроборрелиоз)", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("a_lyme"));
+  mkDisease(
+    "mh-life-s2-a-covid",
+    "COVID-19 с длительными последствиями",
+    Array.isArray(state.section2Diseases) && state.section2Diseases.includes("a_covid_long")
+  );
+
+  const hB = document.createElement("p");
+  hB.className = "mh-life-hint";
+  hB.textContent = "Группа Б (аутоиммунные и воспалительные)";
+  fsB9.appendChild(hB);
+  mkDisease(
+    "mh-life-s2-b-sle",
+    "Системная красная волчанка (с поражением нервной системы)",
+    Array.isArray(state.section2Diseases) && state.section2Diseases.includes("b_sle_cns")
+  );
+  mkDisease("mh-life-s2-b-ms", "Рассеянный склероз", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("b_ms"));
+  mkDisease(
+    "mh-life-s2-b-nmda",
+    "Анти-NMDA-рецепторный энцефалит",
+    Array.isArray(state.section2Diseases) && state.section2Diseases.includes("b_anti_nmda")
+  );
+  mkDisease(
+    "mh-life-s2-b-hashimoto",
+    "Тиреоидит Хашимото (с энцефалопатией)",
+    Array.isArray(state.section2Diseases) && state.section2Diseases.includes("b_hashimoto_encephalopathy")
+  );
+
+  const hV = document.createElement("p");
+  hV.className = "mh-life-hint";
+  hV.textContent = "Группа В (эндокринные)";
+  fsB9.appendChild(hV);
+  mkDisease("mh-life-s2-v-hypo", "Гипотиреоз", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("v_hypothyroidism"));
+  mkDisease(
+    "mh-life-s2-v-hyper",
+    "Тиреотоксикоз / гипертиреоз",
+    Array.isArray(state.section2Diseases) && state.section2Diseases.includes("v_thyrotoxicosis")
+  );
+  mkDisease("mh-life-s2-v-diabetes", "Сахарный диабет", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("v_diabetes"));
+  mkDisease(
+    "mh-life-s2-v-parathy",
+    "Гиперпаратиреоз",
+    Array.isArray(state.section2Diseases) && state.section2Diseases.includes("v_hyperparathyroidism")
+  );
+  mkDisease(
+    "mh-life-s2-v-cushing",
+    "Болезнь Иценко-Кушинга",
+    Array.isArray(state.section2Diseases) && state.section2Diseases.includes("v_cushing")
+  );
+
+  const hG = document.createElement("p");
+  hG.className = "mh-life-hint";
+  hG.textContent = "Группа Г (хронические инвалидизирующие)";
+  fsB9.appendChild(hG);
+  mkDisease("mh-life-s2-g-ra", "Ревматоидный артрит", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("g_ra"));
+  mkDisease("mh-life-s2-g-fibro", "Фибромиалгия", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("g_fibromyalgia"));
+  mkDisease("mh-life-s2-g-copd", "ХОБЛ", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("g_copd"));
+  mkDisease(
+    "mh-life-s2-g-heart",
+    "Тяжелая сердечная недостаточность / ИБС с приступами",
+    Array.isArray(state.section2Diseases) && state.section2Diseases.includes("g_hf_ihd")
+  );
+  mkDisease(
+    "mh-life-s2-g-hep",
+    "Тяжелый гепатит / цирроз печени",
+    Array.isArray(state.section2Diseases) && state.section2Diseases.includes("g_hepatitis_cirrhosis")
+  );
+
+  const hD = document.createElement("p");
+  hD.className = "mh-life-hint";
+  hD.textContent = "Группа Д (дефицитные состояния)";
+  fsB9.appendChild(hD);
+  mkDisease(
+    "mh-life-s2-d-b12",
+    "Дефицит витамина B12 (подтвержденный)",
+    Array.isArray(state.section2Diseases) && state.section2Diseases.includes("d_b12_deficit")
+  );
+  mkDisease("mh-life-s2-d-dvit", "Дефицит витамина D", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("d_d_deficit"));
+  mkDisease(
+    "mh-life-s2-d-iron",
+    "Железодефицитная анемия средней и тяжелой степени",
+    Array.isArray(state.section2Diseases) && state.section2Diseases.includes("d_iron_def_anemia")
+  );
+  mkDisease(
+    "mh-life-s2-d-folate",
+    "Дефицит фолиевой кислоты",
+    Array.isArray(state.section2Diseases) && state.section2Diseases.includes("d_folate_deficit")
+  );
+  mkDisease("mh-life-s2-d-celiac", "Целиакия (нелеченная)", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("d_celiac_untreated"));
+
+  const hE = document.createElement("p");
+  hE.className = "mh-life-hint";
+  hE.textContent = "Группа Е (другое)";
+  fsB9.appendChild(hE);
+  mkDisease("mh-life-s2-e-other", "Другое серьезное заболевание", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("e_other"));
+  const s2OtherRow = document.createElement("div");
+  s2OtherRow.className = "mh-life-row";
+  s2OtherRow.hidden = !(Array.isArray(state.section2Diseases) && state.section2Diseases.includes("e_other"));
+  s2OtherRow.appendChild(document.createTextNode("Уточнение: "));
+  const s2OtherInp = document.createElement("input");
+  s2OtherInp.type = "text";
+  s2OtherInp.id = "mh-life-s2-other-text";
+  s2OtherInp.className = "mh-life-text";
+  s2OtherInp.value = String(state.section2OtherDisease ?? "");
+  s2OtherRow.appendChild(s2OtherInp);
+  fsB9.appendChild(s2OtherRow);
+  const s2OtherCb = fsB9.querySelector("#mh-life-s2-e-other");
+  if (s2OtherCb instanceof HTMLInputElement) {
+    s2OtherCb.addEventListener("change", () => {
+      s2OtherRow.hidden = !s2OtherCb.checked;
+      if (!s2OtherCb.checked) s2OtherInp.value = "";
+      updateS2PsychVisibility();
+    });
+  }
+
+  const q22Wrap = document.createElement("div");
+  q22Wrap.className = "mh-life-early-sub";
+  const q22 = document.createElement("p");
+  q22.className = "mh-life-edu-title";
+  q22.textContent = "Вопрос 2.2. Отмечались ли у Вас после этих заболеваний какие-либо из следующих состояний?";
+  q22Wrap.appendChild(q22);
+  q22Wrap.appendChild(
+    mkCheck(
+      "mh-life-s2-psych-mood",
+      "Изменение настроения (длительная грусть, раздражительность, апатия)",
+      Array.isArray(state.section2PsychSymptoms) && state.section2PsychSymptoms.includes("mood_change")
+    )
+  );
+  q22Wrap.appendChild(
+    mkCheck(
+      "mh-life-s2-psych-anxiety",
+      "Тревога, панические атаки",
+      Array.isArray(state.section2PsychSymptoms) && state.section2PsychSymptoms.includes("anxiety_panic")
+    )
+  );
+  q22Wrap.appendChild(
+    mkCheck(
+      "mh-life-s2-psych-hall",
+      "Галлюцинации (зрительные, слуховые) или бредовые идеи",
+      Array.isArray(state.section2PsychSymptoms) && state.section2PsychSymptoms.includes("hallucinations_delusions")
+    )
+  );
+  q22Wrap.appendChild(
+    mkCheck(
+      "mh-life-s2-psych-conf",
+      "Спутанность сознания («отключки», дезориентация)",
+      Array.isArray(state.section2PsychSymptoms) && state.section2PsychSymptoms.includes("confusion")
+    )
+  );
+  q22Wrap.appendChild(
+    mkCheck(
+      "mh-life-s2-psych-memory",
+      "Значительное ухудшение памяти или внимания",
+      Array.isArray(state.section2PsychSymptoms) && state.section2PsychSymptoms.includes("memory_attention_decline")
+    )
+  );
+  q22Wrap.appendChild(
+    mkCheck("mh-life-s2-psych-none", "Ничего из перечисленного", state.section2PsychNone === true)
+  );
+  fsB9.appendChild(q22Wrap);
+
+  function updateS2PsychVisibility() {
+    const hasDisease =
+      [
+        "#mh-life-s2-a-meningitis",
+        "#mh-life-s2-a-encephalitis",
+        "#mh-life-s2-a-neurosyphilis",
+        "#mh-life-s2-a-hiv",
+        "#mh-life-s2-a-toxo",
+        "#mh-life-s2-a-lyme",
+        "#mh-life-s2-a-covid",
+        "#mh-life-s2-b-sle",
+        "#mh-life-s2-b-ms",
+        "#mh-life-s2-b-nmda",
+        "#mh-life-s2-b-hashimoto",
+        "#mh-life-s2-v-hypo",
+        "#mh-life-s2-v-hyper",
+        "#mh-life-s2-v-diabetes",
+        "#mh-life-s2-v-parathy",
+        "#mh-life-s2-v-cushing",
+        "#mh-life-s2-g-ra",
+        "#mh-life-s2-g-fibro",
+        "#mh-life-s2-g-copd",
+        "#mh-life-s2-g-heart",
+        "#mh-life-s2-g-hep",
+        "#mh-life-s2-d-b12",
+        "#mh-life-s2-d-dvit",
+        "#mh-life-s2-d-iron",
+        "#mh-life-s2-d-folate",
+        "#mh-life-s2-d-celiac",
+        "#mh-life-s2-e-other",
+      ].some((sel) => chk(fsB9, sel));
+    q22Wrap.hidden = !hasDisease;
+    if (!hasDisease) {
+      q22Wrap.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+        if (cb instanceof HTMLInputElement) cb.checked = false;
+      });
+    }
+  }
+  fsB9.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+    if (!(cb instanceof HTMLInputElement)) return;
+    if (cb.id.startsWith("mh-life-s2-psych-")) {
+      cb.addEventListener("change", () => {
+        const noneCb = q22Wrap.querySelector("#mh-life-s2-psych-none");
+        if (cb.id === "mh-life-s2-psych-none" && cb.checked) {
+          q22Wrap.querySelectorAll('input[type="checkbox"]').forEach((el) => {
+            if (el instanceof HTMLInputElement && el.id !== "mh-life-s2-psych-none") el.checked = false;
+          });
+        } else if (cb.id !== "mh-life-s2-psych-none" && cb.checked && noneCb instanceof HTMLInputElement) {
+          noneCb.checked = false;
+        }
+      });
+    } else {
+      cb.addEventListener("change", () => updateS2PsychVisibility());
+    }
+  });
+  updateS2PsychVisibility();
+  contentEl.appendChild(fsB9);
+
+  const fsB10 = fieldset("Блок 10. Раздел 3. Операции");
+  const q101 = document.createElement("p");
+  q101.className = "mh-life-edu-title";
+  q101.textContent = "Вопрос 3.1. Были ли у Вас хирургические операции?";
+  fsB10.appendChild(q101);
+  fsB10.appendChild(radioRow("mh-life-op-had", "yes", "Да", state.operationsHad === "yes"));
+  fsB10.appendChild(radioRow("mh-life-op-had", "no", "Нет", state.operationsHad === "no"));
+  const opWrap = document.createElement("div");
+  opWrap.className = "mh-life-early-sub";
+  opWrap.hidden = state.operationsHad !== "yes";
+  const opList = document.createElement("div");
+  opList.className = "mh-life-childhood-visits-list";
+  opWrap.appendChild(opList);
+  const opStates = Array.isArray(state.operationsList) && state.operationsList.length ? state.operationsList : [{ name: "", age: "", anesthesia: "" }];
+  function reflowOps(mutator) {
+    const y = window.scrollY;
+    readLifeStructuredFromDom(contentEl, answers);
+    const st = parseLifeStructuredString(answers[LIFE_STRUCTURED_ID]);
+    mutator(st);
+    answers[LIFE_STRUCTURED_ID] = JSON.stringify(st);
+    renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, gender, nextWizardBtn);
+    window.requestAnimationFrame(() => window.scrollTo({ top: y }));
+  }
+  opStates.forEach((it, idx) => {
+    const row = document.createElement("div");
+    row.className = "mh-life-childhood-visit";
+    const t = document.createElement("p");
+    t.className = "mh-life-childhood-visit-title";
+    t.textContent = `Операция ${idx + 1}`;
+    row.appendChild(t);
+    const name = document.createElement("input");
+    name.type = "text";
+    name.className = "mh-life-text mh-life-op-name";
+    name.value = String(it.name ?? "");
+    name.placeholder = "Название операции";
+    row.appendChild(name);
+    const age = document.createElement("input");
+    age.type = "text";
+    age.inputMode = "numeric";
+    age.className = "mh-life-text mh-life-text--narrow mh-life-op-age";
+    age.value = String(it.age ?? "");
+    age.placeholder = "Возраст";
+    row.appendChild(age);
+    const anWrap = document.createElement("div");
+    anWrap.className = "mh-life-row";
+    anWrap.appendChild(radioRowStatic(`mh-life-op-an-${idx}`, "yes", "С наркозом", it.anesthesia === "yes"));
+    anWrap.appendChild(radioRowStatic(`mh-life-op-an-${idx}`, "no", "Без наркоза", it.anesthesia === "no"));
+    anWrap.appendChild(radioRowStatic(`mh-life-op-an-${idx}`, "unknown", "Не знаю", it.anesthesia === "unknown"));
+    row.appendChild(anWrap);
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "mh-life-heredity-remove";
+    del.textContent = "Удалить";
+    del.hidden = opStates.length <= 1;
+    del.addEventListener("click", () => {
+      reflowOps((st) => {
+        const arr = Array.isArray(st.operationsList) ? st.operationsList : [];
+        arr.splice(idx, 1);
+        st.operationsList = arr.length ? arr : [{ name: "", age: "", anesthesia: "" }];
+      });
+    });
+    row.appendChild(del);
+    opList.appendChild(row);
+  });
+  const opAdd = document.createElement("button");
+  opAdd.type = "button";
+  opAdd.className = "mh-life-add-case";
+  opAdd.textContent = "Добавить операцию";
+  opAdd.addEventListener("click", () => {
+    reflowOps((st) => {
+      const arr = Array.isArray(st.operationsList) ? st.operationsList : [];
+      arr.push({ name: "", age: "", anesthesia: "" });
+      st.operationsList = arr;
+    });
+  });
+  opWrap.appendChild(opAdd);
+  fsB10.appendChild(opWrap);
+  fsB10.querySelectorAll('input[name="mh-life-op-had"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const sel = fsB10.querySelector('input[name="mh-life-op-had"]:checked');
+      opWrap.hidden = !(sel instanceof HTMLInputElement && sel.value === "yes");
+    });
+  });
+  contentEl.appendChild(fsB10);
+
+  const fsB11 = fieldset("Блок 11. Раздел 4. Потери сознания (без ЧМТ)");
+  const q41 = document.createElement("p");
+  q41.className = "mh-life-edu-title";
+  q41.textContent = "Вопрос 4.1. Были ли потери сознания (обмороки) без ЧМТ?";
+  fsB11.appendChild(q41);
+  fsB11.appendChild(radioRow("mh-life-sync-had", "yes", "Да", state.syncopeNoTbiHad === "yes"));
+  fsB11.appendChild(radioRow("mh-life-sync-had", "no", "Нет", state.syncopeNoTbiHad === "no"));
+  const syncWrap = document.createElement("div");
+  syncWrap.className = "mh-life-early-sub";
+  syncWrap.hidden = state.syncopeNoTbiHad !== "yes";
+  const syncList = document.createElement("div");
+  syncList.className = "mh-life-childhood-visits-list";
+  syncWrap.appendChild(syncList);
+  const syncStates = Array.isArray(state.syncopeNoTbiList) && state.syncopeNoTbiList.length ? state.syncopeNoTbiList : [{ age: "", cause: "" }];
+  function reflowSync(mutator) {
+    const y = window.scrollY;
+    readLifeStructuredFromDom(contentEl, answers);
+    const st = parseLifeStructuredString(answers[LIFE_STRUCTURED_ID]);
+    mutator(st);
+    answers[LIFE_STRUCTURED_ID] = JSON.stringify(st);
+    renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, gender, nextWizardBtn);
+    window.requestAnimationFrame(() => window.scrollTo({ top: y }));
+  }
+  syncStates.forEach((it, idx) => {
+    const row = document.createElement("div");
+    row.className = "mh-life-childhood-visit";
+    const age = document.createElement("input");
+    age.type = "text";
+    age.inputMode = "numeric";
+    age.className = "mh-life-text mh-life-text--narrow mh-life-sync-age";
+    age.value = String(it.age ?? "");
+    age.placeholder = "Возраст";
+    row.appendChild(age);
+    const cause = document.createElement("input");
+    cause.type = "text";
+    cause.className = "mh-life-text mh-life-sync-cause";
+    cause.value = String(it.cause ?? "");
+    cause.placeholder = "Предполагаемая причина";
+    row.appendChild(cause);
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "mh-life-heredity-remove";
+    del.textContent = "Удалить";
+    del.hidden = syncStates.length <= 1;
+    del.addEventListener("click", () => {
+      reflowSync((st) => {
+        const arr = Array.isArray(st.syncopeNoTbiList) ? st.syncopeNoTbiList : [];
+        arr.splice(idx, 1);
+        st.syncopeNoTbiList = arr.length ? arr : [{ age: "", cause: "" }];
+      });
+    });
+    row.appendChild(del);
+    syncList.appendChild(row);
+  });
+  const syncAdd = document.createElement("button");
+  syncAdd.type = "button";
+  syncAdd.className = "mh-life-add-case";
+  syncAdd.textContent = "Добавить обморок";
+  syncAdd.addEventListener("click", () => {
+    reflowSync((st) => {
+      const arr = Array.isArray(st.syncopeNoTbiList) ? st.syncopeNoTbiList : [];
+      arr.push({ age: "", cause: "" });
+      st.syncopeNoTbiList = arr;
+    });
+  });
+  syncWrap.appendChild(syncAdd);
+  fsB11.appendChild(syncWrap);
+  fsB11.querySelectorAll('input[name="mh-life-sync-had"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const sel = fsB11.querySelector('input[name="mh-life-sync-had"]:checked');
+      syncWrap.hidden = !(sel instanceof HTMLInputElement && sel.value === "yes");
+    });
+  });
+  contentEl.appendChild(fsB11);
+
+  const fsB12 = fieldset("Блок 12. Раздел 5. ЧМТ с потерей сознания");
+  const q51 = document.createElement("p");
+  q51.className = "mh-life-edu-title";
+  q51.textContent = "Вопрос 5.1. Были ли ЧМТ, сопровождавшиеся потерей сознания?";
+  fsB12.appendChild(q51);
+  fsB12.appendChild(radioRow("mh-life-tbi-had", "yes", "Да", state.tbiWithLossHad === "yes"));
+  fsB12.appendChild(radioRow("mh-life-tbi-had", "no", "Нет", state.tbiWithLossHad === "no"));
+  const tbiWrap = document.createElement("div");
+  tbiWrap.className = "mh-life-early-sub";
+  tbiWrap.hidden = state.tbiWithLossHad !== "yes";
+  const tbiList = document.createElement("div");
+  tbiList.className = "mh-life-childhood-visits-list";
+  tbiWrap.appendChild(tbiList);
+  const tbiStates =
+    Array.isArray(state.tbiWithLossList) && state.tbiWithLossList.length
+      ? state.tbiWithLossList
+      : [{ age: "", circumstance: "", lossDuration: "", exam: "" }];
+  function reflowTbi(mutator) {
+    const y = window.scrollY;
+    readLifeStructuredFromDom(contentEl, answers);
+    const st = parseLifeStructuredString(answers[LIFE_STRUCTURED_ID]);
+    mutator(st);
+    answers[LIFE_STRUCTURED_ID] = JSON.stringify(st);
+    renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, gender, nextWizardBtn);
+    window.requestAnimationFrame(() => window.scrollTo({ top: y }));
+  }
+  tbiStates.forEach((it, idx) => {
+    const row = document.createElement("div");
+    row.className = "mh-life-childhood-visit";
+    const age = document.createElement("input");
+    age.type = "text";
+    age.inputMode = "numeric";
+    age.className = "mh-life-text mh-life-text--narrow mh-life-tbi-age";
+    age.value = String(it.age ?? "");
+    age.placeholder = "Возраст";
+    row.appendChild(age);
+    const cSel = document.createElement("select");
+    cSel.className = "mh-life-select mh-life-tbi-circ";
+    [
+      ["", "Обстоятельства —"],
+      ["dtp", "ДТП"],
+      ["head_hit", "Удар головой"],
+      ["fall", "Падение"],
+      ["fight", "Драка"],
+      ["unknown", "Не знаю"],
+    ].forEach(([v, t]) => {
+      const o = document.createElement("option");
+      o.value = v;
+      o.textContent = t;
+      if (it.circumstance === v) o.selected = true;
+      cSel.appendChild(o);
+    });
+    row.appendChild(cSel);
+    const dSel = document.createElement("select");
+    dSel.className = "mh-life-select mh-life-tbi-dur";
+    [
+      ["", "Длительность —"],
+      ["seconds", "Секунды"],
+      ["minutes", "Минуты"],
+      ["over_hour", "Более часа"],
+      ["unknown", "Неизвестно"],
+    ].forEach(([v, t]) => {
+      const o = document.createElement("option");
+      o.value = v;
+      o.textContent = t;
+      if (it.lossDuration === v) o.selected = true;
+      dSel.appendChild(o);
+    });
+    row.appendChild(dSel);
+    const eSel = document.createElement("select");
+    eSel.className = "mh-life-select mh-life-tbi-exam";
+    [
+      ["", "Обследование —"],
+      ["ct", "КТ"],
+      ["mri", "МРТ"],
+      ["no", "Нет"],
+      ["unknown", "Не помнит"],
+    ].forEach(([v, t]) => {
+      const o = document.createElement("option");
+      o.value = v;
+      o.textContent = t;
+      if (it.exam === v) o.selected = true;
+      eSel.appendChild(o);
+    });
+    row.appendChild(eSel);
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "mh-life-heredity-remove";
+    del.textContent = "Удалить";
+    del.hidden = tbiStates.length <= 1;
+    del.addEventListener("click", () => {
+      reflowTbi((st) => {
+        const arr = Array.isArray(st.tbiWithLossList) ? st.tbiWithLossList : [];
+        arr.splice(idx, 1);
+        st.tbiWithLossList = arr.length ? arr : [{ age: "", circumstance: "", lossDuration: "", exam: "" }];
+      });
+    });
+    row.appendChild(del);
+    tbiList.appendChild(row);
+  });
+  const tbiAdd = document.createElement("button");
+  tbiAdd.type = "button";
+  tbiAdd.className = "mh-life-add-case";
+  tbiAdd.textContent = "Добавить ЧМТ";
+  tbiAdd.addEventListener("click", () => {
+    reflowTbi((st) => {
+      const arr = Array.isArray(st.tbiWithLossList) ? st.tbiWithLossList : [];
+      arr.push({ age: "", circumstance: "", lossDuration: "", exam: "" });
+      st.tbiWithLossList = arr;
+    });
+  });
+  tbiWrap.appendChild(tbiAdd);
+  fsB12.appendChild(tbiWrap);
+  fsB12.querySelectorAll('input[name="mh-life-tbi-had"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const sel = fsB12.querySelector('input[name="mh-life-tbi-had"]:checked');
+      tbiWrap.hidden = !(sel instanceof HTMLInputElement && sel.value === "yes");
+    });
+  });
+  contentEl.appendChild(fsB12);
+
+  const fsB13 = fieldset("Блок 13. Раздел 6. Эпилепсия");
+  const q131 = document.createElement("p");
+  q131.className = "mh-life-edu-title";
+  q131.textContent = "Вопрос 6.1. Установлен ли диагноз «эпилепсия» или «судорожное расстройство»?";
+  fsB13.appendChild(q131);
+  fsB13.appendChild(radioRow("mh-life-epi-status", "yes", "Да", state.epilepsyStatus === "yes"));
+  fsB13.appendChild(radioRow("mh-life-epi-status", "no", "Нет", state.epilepsyStatus === "no"));
+  fsB13.appendChild(radioRow("mh-life-epi-status", "unknown", "Не знаю / не уверен", state.epilepsyStatus === "unknown"));
+  const epiWrap = document.createElement("div");
+  epiWrap.className = "mh-life-early-sub";
+  epiWrap.hidden = state.epilepsyStatus !== "yes";
+  epiWrap.appendChild(radioRow("mh-life-epi-first", "age", "Первые приступы в возрасте", state.epilepsyFirstSeizureType === "age"));
+  const epiAge = document.createElement("input");
+  epiAge.type = "text";
+  epiAge.inputMode = "numeric";
+  epiAge.id = "mh-life-epi-first-age";
+  epiAge.className = "mh-life-text mh-life-text--narrow";
+  epiAge.value = String(state.epilepsyFirstSeizureAge ?? "");
+  epiAge.disabled = state.epilepsyFirstSeizureType !== "age";
+  epiWrap.appendChild(epiAge);
+  epiWrap.appendChild(radioRow("mh-life-epi-first", "birth", "С рождения", state.epilepsyFirstSeizureType === "birth"));
+  epiWrap.appendChild(radioRow("mh-life-epi-first", "unknown", "Не помню", state.epilepsyFirstSeizureType === "unknown"));
+  epiWrap.querySelectorAll('input[name="mh-life-epi-first"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const sel = epiWrap.querySelector('input[name="mh-life-epi-first"]:checked');
+      const isAge = sel instanceof HTMLInputElement && sel.value === "age";
+      epiAge.disabled = !isAge;
+      if (!isAge) epiAge.value = "";
+    });
+  });
+  epiWrap.appendChild(radioRow("mh-life-epi-meds", "yes", "Принимает противосудорожные препараты", state.epilepsyMedsStatus === "yes"));
+  epiWrap.appendChild(radioRow("mh-life-epi-meds", "no", "Лекарства не принимает", state.epilepsyMedsStatus === "no"));
+  const medsWrap = document.createElement("div");
+  medsWrap.className = "mh-life-early-sub";
+  medsWrap.hidden = state.epilepsyMedsStatus !== "yes";
+  [
+    "вальпроаты (Депакин, Конвулекс)",
+    "леветирацетам (Кеппра)",
+    "карбамазепин (Тегретол, Финлепсин)",
+    "ламотриджин",
+    "топирамат",
+    "другое",
+  ].forEach((m, i) => {
+    const checked = Array.isArray(state.epilepsyMeds) && state.epilepsyMeds.includes(m);
+    medsWrap.appendChild(mkCheck(`mh-life-epi-med-${i}`, m, checked));
+  });
+  epiWrap.appendChild(medsWrap);
+  epiWrap.querySelectorAll('input[name="mh-life-epi-meds"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const sel = epiWrap.querySelector('input[name="mh-life-epi-meds"]:checked');
+      medsWrap.hidden = !(sel instanceof HTMLInputElement && sel.value === "yes");
+      if (medsWrap.hidden) medsWrap.querySelectorAll('input[type="checkbox"]').forEach((cb) => cb instanceof HTMLInputElement && (cb.checked = false));
+    });
+  });
+  fsB13.appendChild(epiWrap);
+  fsB13.querySelectorAll('input[name="mh-life-epi-status"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const sel = fsB13.querySelector('input[name="mh-life-epi-status"]:checked');
+      epiWrap.hidden = !(sel instanceof HTMLInputElement && sel.value === "yes");
+    });
+  });
+  contentEl.appendChild(fsB13);
+
+  const fsB14 = fieldset("Блок 14. Раздел 7. Хронические заболевания");
+  const q141 = document.createElement("p");
+  q141.className = "mh-life-edu-title";
+  q141.textContent = "Вопрос 7.1. Есть ли хронические заболевания, требующие регулярного наблюдения?";
+  fsB14.appendChild(q141);
+  fsB14.appendChild(radioRow("mh-life-chronic-had", "yes", "Да", state.chronicHad === "yes"));
+  fsB14.appendChild(radioRow("mh-life-chronic-had", "no", "Нет", state.chronicHad === "no"));
+  const chWrap = document.createElement("div");
+  chWrap.className = "mh-life-early-sub";
+  chWrap.hidden = state.chronicHad !== "yes";
+  const chDis = document.createElement("input");
+  chDis.type = "text";
+  chDis.id = "mh-life-chronic-diseases";
+  chDis.className = "mh-life-text";
+  chDis.placeholder = "Какие заболевания";
+  chDis.value = String(state.chronicDiseasesText ?? "");
+  chWrap.appendChild(chDis);
+  chWrap.appendChild(radioRow("mh-life-chronic-meds", "yes", "Да, принимает лекарства регулярно", state.chronicMedsRegular === "yes"));
+  chWrap.appendChild(radioRow("mh-life-chronic-meds", "no", "Нет, регулярно не принимает", state.chronicMedsRegular === "no"));
+  const chMeds = document.createElement("input");
+  chMeds.type = "text";
+  chMeds.id = "mh-life-chronic-meds-text";
+  chMeds.className = "mh-life-text";
+  chMeds.placeholder = "Какие лекарства";
+  chMeds.value = String(state.chronicMedsText ?? "");
+  chMeds.hidden = state.chronicMedsRegular !== "yes";
+  chWrap.appendChild(chMeds);
+  chWrap.querySelectorAll('input[name="mh-life-chronic-meds"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const sel = chWrap.querySelector('input[name="mh-life-chronic-meds"]:checked');
+      const show = sel instanceof HTMLInputElement && sel.value === "yes";
+      chMeds.hidden = !show;
+      if (!show) chMeds.value = "";
+    });
+  });
+  fsB14.appendChild(chWrap);
+  fsB14.querySelectorAll('input[name="mh-life-chronic-had"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const sel = fsB14.querySelector('input[name="mh-life-chronic-had"]:checked');
+      chWrap.hidden = !(sel instanceof HTMLInputElement && sel.value === "yes");
+    });
+  });
+  contentEl.appendChild(fsB14);
+
+  const fsB15 = fieldset("Блок 15. Раздел 8. Аллергические реакции");
+  const q151 = document.createElement("p");
+  q151.className = "mh-life-edu-title";
+  q151.textContent = "Вопрос 8.1. Были ли аллергические реакции?";
+  fsB15.appendChild(q151);
+  fsB15.appendChild(radioRow("mh-life-allergy-had", "yes", "Да", state.allergyHad === "yes"));
+  fsB15.appendChild(radioRow("mh-life-allergy-had", "no", "Нет", state.allergyHad === "no"));
+  const alWrap = document.createElement("div");
+  alWrap.className = "mh-life-early-sub";
+  alWrap.hidden = state.allergyHad !== "yes";
+  const alList = document.createElement("div");
+  alList.className = "mh-life-childhood-visits-list";
+  alWrap.appendChild(alList);
+  const alStates = Array.isArray(state.allergyList) && state.allergyList.length ? state.allergyList : [{ trigger: "", reactions: [] }];
+  function reflowAllergy(mutator) {
+    const y = window.scrollY;
+    readLifeStructuredFromDom(contentEl, answers);
+    const st = parseLifeStructuredString(answers[LIFE_STRUCTURED_ID]);
+    mutator(st);
+    answers[LIFE_STRUCTURED_ID] = JSON.stringify(st);
+    renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, gender, nextWizardBtn);
+    window.requestAnimationFrame(() => window.scrollTo({ top: y }));
+  }
+  alStates.forEach((it, idx) => {
+    const row = document.createElement("div");
+    row.className = "mh-life-childhood-visit";
+    const trig = document.createElement("input");
+    trig.type = "text";
+    trig.className = "mh-life-text mh-life-allergy-trigger";
+    trig.placeholder = "На что аллергия";
+    trig.value = String(it.trigger ?? "");
+    row.appendChild(trig);
+    const opts = ["сыпь", "отек", "зуд", "анафилаксия", "насморк", "другое", "не помню"];
+    opts.forEach((opt, j) => {
+      const lab = mkCheck(`mh-life-allergy-r-${idx}-${j}`, opt, Array.isArray(it.reactions) && it.reactions.includes(opt));
+      lab.classList.add("mh-life-allergy-react");
+      row.appendChild(lab);
+    });
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "mh-life-heredity-remove";
+    del.textContent = "Удалить";
+    del.hidden = alStates.length <= 1;
+    del.addEventListener("click", () => {
+      reflowAllergy((st) => {
+        const arr = Array.isArray(st.allergyList) ? st.allergyList : [];
+        arr.splice(idx, 1);
+        st.allergyList = arr.length ? arr : [{ trigger: "", reactions: [] }];
+      });
+    });
+    row.appendChild(del);
+    alList.appendChild(row);
+  });
+  const alAdd = document.createElement("button");
+  alAdd.type = "button";
+  alAdd.className = "mh-life-add-case";
+  alAdd.textContent = "Добавить аллергию";
+  alAdd.addEventListener("click", () => {
+    reflowAllergy((st) => {
+      const arr = Array.isArray(st.allergyList) ? st.allergyList : [];
+      arr.push({ trigger: "", reactions: [] });
+      st.allergyList = arr;
+    });
+  });
+  alWrap.appendChild(alAdd);
+  fsB15.appendChild(alWrap);
+  fsB15.querySelectorAll('input[name="mh-life-allergy-had"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const sel = fsB15.querySelector('input[name="mh-life-allergy-had"]:checked');
+      alWrap.hidden = !(sel instanceof HTMLInputElement && sel.value === "yes");
+    });
+  });
+  contentEl.appendChild(fsB15);
+
+  const fsB16 = fieldset("Блок 16. Раздел 9. Курение");
+  const q91 = document.createElement("p");
+  q91.className = "mh-life-edu-title";
+  q91.textContent = "Вопрос 9.1. Курите ли Вы?";
+  fsB16.appendChild(q91);
+  fsB16.appendChild(radioRow("mh-life-smoking", "no", "Нет", state.smokingStatus === "no"));
+  fsB16.appendChild(radioRow("mh-life-smoking", "past", uiSmokingPast, state.smokingStatus === "past"));
+  fsB16.appendChild(radioRow("mh-life-smoking", "yes", "Да, курю", state.smokingStatus === "yes"));
+  const smokingPastRow = document.createElement("div");
+  smokingPastRow.className = "mh-life-row";
+  smokingPastRow.hidden = state.smokingStatus !== "past";
+  smokingPastRow.appendChild(document.createTextNode("Стаж курения до отказа (лет): "));
+  const smokingPastInp = document.createElement("input");
+  smokingPastInp.type = "text";
+  smokingPastInp.inputMode = "numeric";
+  smokingPastInp.className = "mh-life-text mh-life-text--narrow";
+  smokingPastInp.id = "mh-life-smoking-past-years";
+  smokingPastInp.value = String(state.smokingPastYears ?? "");
+  smokingPastRow.appendChild(smokingPastInp);
+  fsB16.appendChild(smokingPastRow);
+  const smokingYesWrap = document.createElement("div");
+  smokingYesWrap.className = "mh-life-early-sub";
+  smokingYesWrap.hidden = state.smokingStatus !== "yes";
+  const sy = document.createElement("input");
+  sy.type = "text";
+  sy.inputMode = "numeric";
+  sy.className = "mh-life-text mh-life-text--narrow";
+  sy.id = "mh-life-smoking-years";
+  sy.value = String(state.smokingCurrentYears ?? "");
+  const syRow = document.createElement("div");
+  syRow.className = "mh-life-row";
+  syRow.appendChild(document.createTextNode("Стаж курения (лет): "));
+  syRow.appendChild(sy);
+  smokingYesWrap.appendChild(syRow);
+  const scSel = document.createElement("select");
+  scSel.id = "mh-life-smoking-cigs";
+  scSel.className = "mh-life-select";
+  [
+    ["", "Количество сигарет в день —"],
+    ["менее 5 сигарет в день", "<5"],
+    ["5–10 сигарет в день", "5–10"],
+    ["11–20 сигарет в день", "11–20"],
+    ["более 20 сигарет в день", ">20"],
+  ].forEach(([v, t]) => {
+    const o = document.createElement("option");
+    o.value = v;
+    o.textContent = t;
+    if (state.smokingCurrentCigs === v) o.selected = true;
+    scSel.appendChild(o);
+  });
+  smokingYesWrap.appendChild(scSel);
+  smokingYesWrap.appendChild(radioRow("mh-life-smoking-vape", "yes", "Использует электронные сигареты/вейп/IQOS", state.smokingUsesVape === "yes"));
+  smokingYesWrap.appendChild(radioRow("mh-life-smoking-vape", "no", "Не использует", state.smokingUsesVape === "no"));
+  fsB16.appendChild(smokingYesWrap);
+  fsB16.querySelectorAll('input[name="mh-life-smoking"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const sel = fsB16.querySelector('input[name="mh-life-smoking"]:checked');
+      const v = sel instanceof HTMLInputElement ? sel.value : "";
+      smokingPastRow.hidden = v !== "past";
+      smokingYesWrap.hidden = v !== "yes";
+      if (v !== "past") smokingPastInp.value = "";
+      if (v !== "yes") {
+        sy.value = "";
+        scSel.value = "";
+        fsB16.querySelectorAll('input[name="mh-life-smoking-vape"]').forEach((r) => r instanceof HTMLInputElement && (r.checked = false));
+      }
+    });
+  });
+  contentEl.appendChild(fsB16);
+
+  const fsB17 = fieldset("Блок 17. Раздел 10. Употребление алкоголя");
+  const q171 = document.createElement("p");
+  q171.className = "mh-life-edu-title";
+  q171.textContent = "Вопрос 10.1. Употребляете ли Вы алкогольные напитки?";
+  fsB17.appendChild(q171);
+  fsB17.appendChild(radioRow("mh-life-alcohol", "none", "Нет (никогда)", state.alcoholStatus === "none"));
+  fsB17.appendChild(radioRow("mh-life-alcohol", "rare", "Редко (1–2 раза в месяц и реже)", state.alcoholStatus === "rare"));
+  fsB17.appendChild(radioRow("mh-life-alcohol", "regular", "Регулярно (1–2 раза в неделю и чаще)", state.alcoholStatus === "regular"));
+  const alcoholRare = document.createElement("div");
+  alcoholRare.className = "mh-life-early-sub";
+  alcoholRare.hidden = state.alcoholStatus !== "rare";
+  const arDrink = document.createElement("input");
+  arDrink.type = "text";
+  arDrink.id = "mh-life-alcohol-rare-drink";
+  arDrink.className = "mh-life-text";
+  arDrink.placeholder = "Типичный напиток";
+  arDrink.value = String(state.alcoholRareDrink ?? "");
+  alcoholRare.appendChild(arDrink);
+  const arAmt = document.createElement("input");
+  arAmt.type = "text";
+  arAmt.id = "mh-life-alcohol-rare-amount";
+  arAmt.className = "mh-life-text";
+  arAmt.placeholder = "Примерное количество за раз";
+  arAmt.value = String(state.alcoholRareAmount ?? "");
+  alcoholRare.appendChild(arAmt);
+  fsB17.appendChild(alcoholRare);
+  const alcoholReg = document.createElement("div");
+  alcoholReg.className = "mh-life-early-sub";
+  alcoholReg.hidden = state.alcoholStatus !== "regular";
+  const regPref = document.createElement("input");
+  regPref.type = "text";
+  regPref.id = "mh-life-alcohol-reg-pref";
+  regPref.className = "mh-life-text";
+  regPref.placeholder = "Предпочтение (крепкое/некрепкое/смешанное)";
+  regPref.value = String(state.alcoholRegularPref ?? "");
+  alcoholReg.appendChild(regPref);
+  const regAmt = document.createElement("input");
+  regAmt.type = "text";
+  regAmt.id = "mh-life-alcohol-reg-amount";
+  regAmt.className = "mh-life-text";
+  regAmt.placeholder = "Количество за раз";
+  regAmt.value = String(state.alcoholRegularAmount ?? "");
+  alcoholReg.appendChild(regAmt);
+  alcoholReg.appendChild(mkCheck("mh-life-alcohol-conseq-hangover", "Тяжелое похмелье", state.alcoholRegularConsequencesHangover));
+  alcoholReg.appendChild(mkCheck("mh-life-alcohol-conseq-memory", "Провалы в памяти", state.alcoholRegularConsequencesMemoryBlackouts));
+  alcoholReg.appendChild(mkCheck("mh-life-alcohol-conseq-conflicts", "Конфликты из-за алкоголя", state.alcoholRegularConsequencesConflicts));
+  alcoholReg.appendChild(mkCheck("mh-life-alcohol-conseq-law", "Проблемы с законом", state.alcoholRegularConsequencesLaw));
+  alcoholReg.appendChild(mkCheck("mh-life-alcohol-conseq-narc", "Обращение к наркологу", state.alcoholRegularConsequencesNarcologist));
+  fsB17.appendChild(alcoholReg);
+  fsB17.querySelectorAll('input[name="mh-life-alcohol"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const sel = fsB17.querySelector('input[name="mh-life-alcohol"]:checked');
+      const v = sel instanceof HTMLInputElement ? sel.value : "";
+      alcoholRare.hidden = v !== "rare";
+      alcoholReg.hidden = v !== "regular";
+      if (v !== "rare") {
+        arDrink.value = "";
+        arAmt.value = "";
+      }
+      if (v !== "regular") {
+        regPref.value = "";
+        regAmt.value = "";
+        alcoholReg.querySelectorAll('input[type="checkbox"]').forEach((cb) => cb instanceof HTMLInputElement && (cb.checked = false));
+      }
+    });
+  });
+  contentEl.appendChild(fsB17);
+
+  const fsB18 = fieldset("Блок 18. Раздел 11. Психоактивные вещества (ПАВ)");
+  const q111 = document.createElement("p");
+  q111.className = "mh-life-edu-title";
+  q111.textContent = "Вопрос 11.1. Употребляли ли Вы когда-либо ПАВ?";
+  fsB18.appendChild(q111);
+  fsB18.appendChild(radioRow("mh-life-pav-had", "yes", "Да", state.pavHad === "yes"));
+  fsB18.appendChild(radioRow("mh-life-pav-had", "no", "Нет", state.pavHad === "no"));
+  const pavWrap = document.createElement("div");
+  pavWrap.className = "mh-life-early-sub";
+  pavWrap.hidden = state.pavHad !== "yes";
+  const pavList = document.createElement("div");
+  pavList.className = "mh-life-childhood-visits-list";
+  pavWrap.appendChild(pavList);
+  const pavStates = Array.isArray(state.pavList) && state.pavList.length ? state.pavList : [{ substance: "", lastUse: "", frequency: "", treatment: "" }];
+  function reflowPav(mutator) {
+    const y = window.scrollY;
+    readLifeStructuredFromDom(contentEl, answers);
+    const st = parseLifeStructuredString(answers[LIFE_STRUCTURED_ID]);
+    mutator(st);
+    answers[LIFE_STRUCTURED_ID] = JSON.stringify(st);
+    renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, gender, nextWizardBtn);
+    window.requestAnimationFrame(() => window.scrollTo({ top: y }));
+  }
+  pavStates.forEach((it, idx) => {
+    const row = document.createElement("div");
+    row.className = "mh-life-childhood-visit";
+    const sub = document.createElement("input");
+    sub.type = "text";
+    sub.className = "mh-life-text mh-life-pav-substance";
+    sub.placeholder = "Какое вещество";
+    sub.value = String(it.substance ?? "");
+    row.appendChild(sub);
+    const last = document.createElement("input");
+    last.type = "text";
+    last.className = "mh-life-text mh-life-pav-last";
+    last.placeholder = "Последний раз (в возрасте X лет / в YYYY году)";
+    last.value = String(it.lastUse ?? "");
+    row.appendChild(last);
+    const fSel = document.createElement("select");
+    fSel.className = "mh-life-select mh-life-pav-freq";
+    [
+      ["", "Частота —"],
+      ["once_or_twice", "1–2 раза в жизни"],
+      ["episodic", "Эпизодически"],
+      ["regular_period", "Был период регулярного употребления"],
+    ].forEach(([v, t]) => {
+      const o = document.createElement("option");
+      o.value = v;
+      o.textContent = t;
+      if (it.frequency === v) o.selected = true;
+      fSel.appendChild(o);
+    });
+    row.appendChild(fSel);
+    const tSel = document.createElement("select");
+    tSel.className = "mh-life-select mh-life-pav-treatment";
+    [
+      ["", "Лечение —"],
+      ["yes", "Лечение от зависимости проходил(а)"],
+      ["no", "Лечение от зависимости не проходил(а)"],
+    ].forEach(([v, t]) => {
+      const o = document.createElement("option");
+      o.value = v;
+      o.textContent = t;
+      if (it.treatment === v) o.selected = true;
+      tSel.appendChild(o);
+    });
+    row.appendChild(tSel);
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "mh-life-heredity-remove";
+    del.textContent = "Удалить";
+    del.hidden = pavStates.length <= 1;
+    del.addEventListener("click", () => {
+      reflowPav((st) => {
+        const arr = Array.isArray(st.pavList) ? st.pavList : [];
+        arr.splice(idx, 1);
+        st.pavList = arr.length ? arr : [{ substance: "", lastUse: "", frequency: "", treatment: "" }];
+      });
+    });
+    row.appendChild(del);
+    pavList.appendChild(row);
+  });
+  const pavAdd = document.createElement("button");
+  pavAdd.type = "button";
+  pavAdd.className = "mh-life-add-case";
+  pavAdd.textContent = "Добавить вещество";
+  pavAdd.addEventListener("click", () => {
+    reflowPav((st) => {
+      const arr = Array.isArray(st.pavList) ? st.pavList : [];
+      arr.push({ substance: "", lastUse: "", frequency: "", treatment: "" });
+      st.pavList = arr;
+    });
+  });
+  pavWrap.appendChild(pavAdd);
+  fsB18.appendChild(pavWrap);
+  fsB18.querySelectorAll('input[name="mh-life-pav-had"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const sel = fsB18.querySelector('input[name="mh-life-pav-had"]:checked');
+      pavWrap.hidden = !(sel instanceof HTMLInputElement && sel.value === "yes");
+    });
+  });
+  contentEl.appendChild(fsB18);
 
   contentEl.querySelectorAll('input[name="mh-life-heredity"]').forEach((el) => {
     el.addEventListener("change", () => syncYesBlock());
@@ -1715,6 +3643,8 @@ export function readLifeStructuredFromDom(contentEl, answers) {
   s.kindergartenAdapt = s.kindergartenAttend === "yes" && ka && "value" in ka ? ka.value : "";
   s.kindergartenAdaptDetails =
     s.kindergartenAttend === "yes" && s.kindergartenAdapt === "difficult" ? valOf(contentEl, "#mh-life-kdg-adapt-details") : "";
+  s.childhoodCharacterUnknown = chk(contentEl, "#mh-life-child-character-unknown");
+  s.childhoodCharacter = s.childhoodCharacterUnknown ? "" : valOf(contentEl, "#mh-life-child-character");
 
   const ch = contentEl.querySelector('input[name="mh-life-childhood"]:checked');
   s.childhoodSpecialists =
@@ -1732,9 +3662,55 @@ export function readLifeStructuredFromDom(contentEl, answers) {
   }
 
   s.schoolStartAge = valOf(contentEl, "#mh-life-school-age");
+  s.schoolTypeGeneral = chk(contentEl, "#mh-life-school-type-general");
+  s.schoolTypeGymnasium = chk(contentEl, "#mh-life-school-type-gym");
+  s.schoolTypeLyceum = chk(contentEl, "#mh-life-school-type-lyceum");
+  s.schoolTypeCorrectional = chk(contentEl, "#mh-life-school-type-corr");
+  s.schoolTypeCorrectionalDetails = s.schoolTypeCorrectional ? valOf(contentEl, "#mh-life-school-corr-details") : "";
+  s.schoolTypeHome = chk(contentEl, "#mh-life-school-type-home");
+  s.schoolTypeHomeFromClass = s.schoolTypeHome ? valOf(contentEl, "#mh-life-school-home-from") : "";
+  s.schoolTypeHomeToClass = s.schoolTypeHome ? valOf(contentEl, "#mh-life-school-home-to") : "";
+  s.schoolTypeHomeReason = s.schoolTypeHome ? valOf(contentEl, "#mh-life-school-home-reason") : "";
+  s.schoolTypeUnknown = chk(contentEl, "#mh-life-school-type-unknown");
+
+  const schCh = contentEl.querySelector('input[name="mh-life-school-change"]:checked');
+  s.schoolChanged = schCh && "value" in schCh ? schCh.value : "";
+  const schFreq = contentEl.querySelector('input[name="mh-life-school-change-freq"]:checked');
+  s.schoolChangeFrequency = s.schoolChanged === "yes" && schFreq && "value" in schFreq ? schFreq.value : "";
+  s.schoolChangeMove = s.schoolChanged === "yes" && chk(contentEl, "#mh-life-school-change-move");
+  s.schoolChangeConflictsPeers = s.schoolChanged === "yes" && chk(contentEl, "#mh-life-school-change-conf-peers");
+  s.schoolChangeConflictsTeachers = s.schoolChanged === "yes" && chk(contentEl, "#mh-life-school-change-conf-teachers");
+  s.schoolChangePoorPerformance = s.schoolChanged === "yes" && chk(contentEl, "#mh-life-school-change-poor");
+  s.schoolChangeProfile = s.schoolChanged === "yes" && chk(contentEl, "#mh-life-school-change-profile");
+  s.schoolChangeStronger = s.schoolChanged === "yes" && chk(contentEl, "#mh-life-school-change-stronger");
+  s.schoolChangeWeaker = s.schoolChanged === "yes" && chk(contentEl, "#mh-life-school-change-weaker");
+  s.schoolChangeExpelled = s.schoolChanged === "yes" && chk(contentEl, "#mh-life-school-change-expelled");
+  s.schoolChangeOther = s.schoolChanged === "yes" && chk(contentEl, "#mh-life-school-change-other");
+  s.schoolChangeOtherText =
+    s.schoolChanged === "yes" && s.schoolChangeOther ? valOf(contentEl, "#mh-life-school-change-other-text") : "";
+
+  const sAdapt = contentEl.querySelector('input[name="mh-life-school-adapt"]:checked');
+  s.schoolAdaptation = sAdapt && "value" in sAdapt ? sAdapt.value : "";
+  s.schoolAdaptationDetails = s.schoolAdaptation === "yes" ? valOf(contentEl, "#mh-life-school-adapt-details") : "";
+
   s.schoolPerformance = valOf(contentEl, "#mh-life-school-perf");
+  s.schoolPeerEasyFriends = chk(contentEl, "#mh-life-peer-easy");
+  s.schoolPeerFewFriends = chk(contentEl, "#mh-life-peer-few");
+  s.schoolPeerCommunicationDifficulties = chk(contentEl, "#mh-life-peer-diff");
+  s.schoolPeerOutcast = chk(contentEl, "#mh-life-peer-outcast");
+  s.schoolPeerBullied = chk(contentEl, "#mh-life-peer-bullied");
+  s.schoolPeerAggression = chk(contentEl, "#mh-life-peer-aggr");
+  s.schoolPeerNeutral = chk(contentEl, "#mh-life-peer-neutral");
+  s.schoolTeacherEven = chk(contentEl, "#mh-life-teacher-even");
+  s.schoolTeacherOneConflict = chk(contentEl, "#mh-life-teacher-one-conf");
+  s.schoolTeacherManyConflicts = chk(contentEl, "#mh-life-teacher-many-conf");
+  s.schoolTeacherFavorite = chk(contentEl, "#mh-life-teacher-fav");
+  s.schoolTeacherCriticized = chk(contentEl, "#mh-life-teacher-crit");
+  s.schoolTeacherNeutral = chk(contentEl, "#mh-life-teacher-neutral");
+  const sf = contentEl.querySelector('input[name="mh-life-school-finished"]:checked');
+  s.schoolFinished = sf && "value" in sf ? sf.value : "";
   const cl = valOf(contentEl, "#mh-life-school-classes");
-  if (cl === "") s.schoolClasses = null;
+  if (s.schoolFinished === "no" || cl === "") s.schoolClasses = null;
   else {
     const n = Number(cl);
     s.schoolClasses = Number.isFinite(n) && n >= 1 && n <= 11 ? n : null;
@@ -1744,14 +3720,202 @@ export function readLifeStructuredFromDom(contentEl, answers) {
   s.army = ar && "value" in ar ? ar.value : "";
 
   const sec = contentEl.querySelector('input[name="mh-life-edu-sec"]:checked');
-  s.eduSecDone = sec?.value === "done";
-  s.eduSecUndone = sec?.value === "undone";
-  s.eduSecSpec = valOf(contentEl, "#mh-life-edu-sec-spec");
+  s.eduNoAfterSchool = chk(contentEl, "#mh-life-edu-none-after-school");
+  s.eduSecDone = !s.eduNoAfterSchool && sec?.value === "done";
+  s.eduSecUndone = !s.eduNoAfterSchool && sec?.value === "undone";
+  s.eduSecSpec = s.eduNoAfterSchool ? "" : valOf(contentEl, "#mh-life-edu-sec-spec");
 
   const hi = contentEl.querySelector('input[name="mh-life-edu-hi"]:checked');
-  s.eduHiDone = hi?.value === "done";
-  s.eduHiUndone = hi?.value === "undone";
-  s.eduHiSpec = valOf(contentEl, "#mh-life-edu-hi-spec");
+  s.eduHiDone = !s.eduNoAfterSchool && hi?.value === "done";
+  s.eduHiUndone = !s.eduNoAfterSchool && hi?.value === "undone";
+  s.eduHiSpec = s.eduNoAfterSchool ? "" : valOf(contentEl, "#mh-life-edu-hi-spec");
+
+  /** @type {string[]} */
+  const s2dis = [];
+  if (chk(contentEl, "#mh-life-s2-a-meningitis")) s2dis.push("a_meningitis");
+  if (chk(contentEl, "#mh-life-s2-a-encephalitis")) s2dis.push("a_encephalitis");
+  if (chk(contentEl, "#mh-life-s2-a-neurosyphilis")) s2dis.push("a_neurosyphilis");
+  if (chk(contentEl, "#mh-life-s2-a-hiv")) s2dis.push("a_hiv");
+  if (chk(contentEl, "#mh-life-s2-a-toxo")) s2dis.push("a_toxoplasmosis_cns");
+  if (chk(contentEl, "#mh-life-s2-a-lyme")) s2dis.push("a_lyme");
+  if (chk(contentEl, "#mh-life-s2-a-covid")) s2dis.push("a_covid_long");
+  if (chk(contentEl, "#mh-life-s2-b-sle")) s2dis.push("b_sle_cns");
+  if (chk(contentEl, "#mh-life-s2-b-ms")) s2dis.push("b_ms");
+  if (chk(contentEl, "#mh-life-s2-b-nmda")) s2dis.push("b_anti_nmda");
+  if (chk(contentEl, "#mh-life-s2-b-hashimoto")) s2dis.push("b_hashimoto_encephalopathy");
+  if (chk(contentEl, "#mh-life-s2-v-hypo")) s2dis.push("v_hypothyroidism");
+  if (chk(contentEl, "#mh-life-s2-v-hyper")) s2dis.push("v_thyrotoxicosis");
+  if (chk(contentEl, "#mh-life-s2-v-diabetes")) s2dis.push("v_diabetes");
+  if (chk(contentEl, "#mh-life-s2-v-parathy")) s2dis.push("v_hyperparathyroidism");
+  if (chk(contentEl, "#mh-life-s2-v-cushing")) s2dis.push("v_cushing");
+  if (chk(contentEl, "#mh-life-s2-g-ra")) s2dis.push("g_ra");
+  if (chk(contentEl, "#mh-life-s2-g-fibro")) s2dis.push("g_fibromyalgia");
+  if (chk(contentEl, "#mh-life-s2-g-copd")) s2dis.push("g_copd");
+  if (chk(contentEl, "#mh-life-s2-g-heart")) s2dis.push("g_hf_ihd");
+  if (chk(contentEl, "#mh-life-s2-g-hep")) s2dis.push("g_hepatitis_cirrhosis");
+  if (chk(contentEl, "#mh-life-s2-d-b12")) s2dis.push("d_b12_deficit");
+  if (chk(contentEl, "#mh-life-s2-d-dvit")) s2dis.push("d_d_deficit");
+  if (chk(contentEl, "#mh-life-s2-d-iron")) s2dis.push("d_iron_def_anemia");
+  if (chk(contentEl, "#mh-life-s2-d-folate")) s2dis.push("d_folate_deficit");
+  if (chk(contentEl, "#mh-life-s2-d-celiac")) s2dis.push("d_celiac_untreated");
+  if (chk(contentEl, "#mh-life-s2-e-other")) s2dis.push("e_other");
+  s.section2Diseases = s2dis;
+  s.section2OtherDisease = s2dis.includes("e_other") ? valOf(contentEl, "#mh-life-s2-other-text") : "";
+
+  const hasS2 = s2dis.length > 0;
+  s.section2PsychNone = hasS2 && chk(contentEl, "#mh-life-s2-psych-none");
+  /** @type {string[]} */
+  const s2psy = [];
+  if (hasS2 && !s.section2PsychNone) {
+    if (chk(contentEl, "#mh-life-s2-psych-mood")) s2psy.push("mood_change");
+    if (chk(contentEl, "#mh-life-s2-psych-anxiety")) s2psy.push("anxiety_panic");
+    if (chk(contentEl, "#mh-life-s2-psych-hall")) s2psy.push("hallucinations_delusions");
+    if (chk(contentEl, "#mh-life-s2-psych-conf")) s2psy.push("confusion");
+    if (chk(contentEl, "#mh-life-s2-psych-memory")) s2psy.push("memory_attention_decline");
+  }
+  s.section2PsychSymptoms = s2psy;
+
+  const oph = contentEl.querySelector('input[name="mh-life-op-had"]:checked');
+  s.operationsHad = oph && "value" in oph ? oph.value : "";
+  if (s.operationsHad === "yes") {
+    /** @type {OperationEntry[]} */
+    const ops = [];
+    contentEl.querySelectorAll(".mh-life-op-name").forEach((el, idx) => {
+      if (!(el instanceof HTMLInputElement)) return;
+      const name = el.value.trim();
+      const ageEl = contentEl.querySelectorAll(".mh-life-op-age")[idx];
+      const age = ageEl instanceof HTMLInputElement ? ageEl.value.trim() : "";
+      const anEl = contentEl.querySelector(`input[name="mh-life-op-an-${idx}"]:checked`);
+      const anesthesia = anEl instanceof HTMLInputElement ? anEl.value : "";
+      ops.push({ name, age, anesthesia });
+    });
+    s.operationsList = ops;
+  } else s.operationsList = [];
+
+  const synh = contentEl.querySelector('input[name="mh-life-sync-had"]:checked');
+  s.syncopeNoTbiHad = synh && "value" in synh ? synh.value : "";
+  if (s.syncopeNoTbiHad === "yes") {
+    /** @type {SyncopeEntry[]} */
+    const arr = [];
+    contentEl.querySelectorAll(".mh-life-sync-age").forEach((el, idx) => {
+      if (!(el instanceof HTMLInputElement)) return;
+      const age = el.value.trim();
+      const causeEl = contentEl.querySelectorAll(".mh-life-sync-cause")[idx];
+      const cause = causeEl instanceof HTMLInputElement ? causeEl.value.trim() : "";
+      arr.push({ age, cause });
+    });
+    s.syncopeNoTbiList = arr;
+  } else s.syncopeNoTbiList = [];
+
+  const tbih = contentEl.querySelector('input[name="mh-life-tbi-had"]:checked');
+  s.tbiWithLossHad = tbih && "value" in tbih ? tbih.value : "";
+  if (s.tbiWithLossHad === "yes") {
+    /** @type {TbiEntry[]} */
+    const arr = [];
+    contentEl.querySelectorAll(".mh-life-tbi-age").forEach((el, idx) => {
+      if (!(el instanceof HTMLInputElement)) return;
+      const age = el.value.trim();
+      const cEl = contentEl.querySelectorAll(".mh-life-tbi-circ")[idx];
+      const dEl = contentEl.querySelectorAll(".mh-life-tbi-dur")[idx];
+      const eEl = contentEl.querySelectorAll(".mh-life-tbi-exam")[idx];
+      arr.push({
+        age,
+        circumstance: cEl instanceof HTMLSelectElement ? cEl.value : "",
+        lossDuration: dEl instanceof HTMLSelectElement ? dEl.value : "",
+        exam: eEl instanceof HTMLSelectElement ? eEl.value : "",
+      });
+    });
+    s.tbiWithLossList = arr;
+  } else s.tbiWithLossList = [];
+
+  const epi = contentEl.querySelector('input[name="mh-life-epi-status"]:checked');
+  s.epilepsyStatus = epi && "value" in epi ? epi.value : "";
+  const epiFirst = contentEl.querySelector('input[name="mh-life-epi-first"]:checked');
+  s.epilepsyFirstSeizureType = s.epilepsyStatus === "yes" && epiFirst && "value" in epiFirst ? epiFirst.value : "";
+  s.epilepsyFirstSeizureAge =
+    s.epilepsyStatus === "yes" && s.epilepsyFirstSeizureType === "age" ? valOf(contentEl, "#mh-life-epi-first-age") : "";
+  const epiM = contentEl.querySelector('input[name="mh-life-epi-meds"]:checked');
+  s.epilepsyMedsStatus = s.epilepsyStatus === "yes" && epiM && "value" in epiM ? epiM.value : "";
+  /** @type {string[]} */
+  const epiMeds = [];
+  if (s.epilepsyStatus === "yes" && s.epilepsyMedsStatus === "yes") {
+    contentEl.querySelectorAll('[id^="mh-life-epi-med-"]').forEach((el) => {
+      if (el instanceof HTMLInputElement && el.checked) {
+        const t = el.parentElement?.textContent?.trim() ?? "";
+        if (t) epiMeds.push(t);
+      }
+    });
+  }
+  s.epilepsyMeds = epiMeds;
+
+  const chh = contentEl.querySelector('input[name="mh-life-chronic-had"]:checked');
+  s.chronicHad = chh && "value" in chh ? chh.value : "";
+  s.chronicDiseasesText = s.chronicHad === "yes" ? valOf(contentEl, "#mh-life-chronic-diseases") : "";
+  const chm = contentEl.querySelector('input[name="mh-life-chronic-meds"]:checked');
+  s.chronicMedsRegular = s.chronicHad === "yes" && chm && "value" in chm ? chm.value : "";
+  s.chronicMedsText = s.chronicHad === "yes" && s.chronicMedsRegular === "yes" ? valOf(contentEl, "#mh-life-chronic-meds-text") : "";
+
+  const alh = contentEl.querySelector('input[name="mh-life-allergy-had"]:checked');
+  s.allergyHad = alh && "value" in alh ? alh.value : "";
+  if (s.allergyHad === "yes") {
+    /** @type {AllergyEntry[]} */
+    const arr = [];
+    contentEl.querySelectorAll(".mh-life-allergy-trigger").forEach((el, idx) => {
+      if (!(el instanceof HTMLInputElement)) return;
+      const trigger = el.value.trim();
+      const reactions = [];
+      contentEl.querySelectorAll(`[id^="mh-life-allergy-r-${idx}-"]`).forEach((r) => {
+        if (r instanceof HTMLInputElement && r.checked) {
+          const t = r.parentElement?.textContent?.trim() ?? "";
+          if (t) reactions.push(t);
+        }
+      });
+      arr.push({ trigger, reactions });
+    });
+    s.allergyList = arr;
+  } else s.allergyList = [];
+
+  const sm = contentEl.querySelector('input[name="mh-life-smoking"]:checked');
+  s.smokingStatus = sm && "value" in sm ? sm.value : "";
+  s.smokingPastYears = s.smokingStatus === "past" ? valOf(contentEl, "#mh-life-smoking-past-years") : "";
+  s.smokingCurrentYears = s.smokingStatus === "yes" ? valOf(contentEl, "#mh-life-smoking-years") : "";
+  s.smokingCurrentCigs = s.smokingStatus === "yes" ? valOf(contentEl, "#mh-life-smoking-cigs") : "";
+  const smv = contentEl.querySelector('input[name="mh-life-smoking-vape"]:checked');
+  s.smokingUsesVape = s.smokingStatus === "yes" && smv && "value" in smv ? smv.value : "";
+
+  const alc = contentEl.querySelector('input[name="mh-life-alcohol"]:checked');
+  s.alcoholStatus = alc && "value" in alc ? alc.value : "";
+  s.alcoholRareDrink = s.alcoholStatus === "rare" ? valOf(contentEl, "#mh-life-alcohol-rare-drink") : "";
+  s.alcoholRareAmount = s.alcoholStatus === "rare" ? valOf(contentEl, "#mh-life-alcohol-rare-amount") : "";
+  s.alcoholRegularPref = s.alcoholStatus === "regular" ? valOf(contentEl, "#mh-life-alcohol-reg-pref") : "";
+  s.alcoholRegularAmount = s.alcoholStatus === "regular" ? valOf(contentEl, "#mh-life-alcohol-reg-amount") : "";
+  s.alcoholRegularConsequencesHangover = s.alcoholStatus === "regular" && chk(contentEl, "#mh-life-alcohol-conseq-hangover");
+  s.alcoholRegularConsequencesMemoryBlackouts =
+    s.alcoholStatus === "regular" && chk(contentEl, "#mh-life-alcohol-conseq-memory");
+  s.alcoholRegularConsequencesConflicts = s.alcoholStatus === "regular" && chk(contentEl, "#mh-life-alcohol-conseq-conflicts");
+  s.alcoholRegularConsequencesLaw = s.alcoholStatus === "regular" && chk(contentEl, "#mh-life-alcohol-conseq-law");
+  s.alcoholRegularConsequencesNarcologist = s.alcoholStatus === "regular" && chk(contentEl, "#mh-life-alcohol-conseq-narc");
+
+  const pavh = contentEl.querySelector('input[name="mh-life-pav-had"]:checked');
+  s.pavHad = pavh && "value" in pavh ? pavh.value : "";
+  if (s.pavHad === "yes") {
+    /** @type {PavEntry[]} */
+    const arr = [];
+    contentEl.querySelectorAll(".mh-life-pav-substance").forEach((el, idx) => {
+      if (!(el instanceof HTMLInputElement)) return;
+      const sub = el.value.trim();
+      const lastEl = contentEl.querySelectorAll(".mh-life-pav-last")[idx];
+      const freqEl = contentEl.querySelectorAll(".mh-life-pav-freq")[idx];
+      const trEl = contentEl.querySelectorAll(".mh-life-pav-treatment")[idx];
+      arr.push({
+        substance: sub,
+        lastUse: lastEl instanceof HTMLInputElement ? lastEl.value.trim() : "",
+        frequency: freqEl instanceof HTMLSelectElement ? freqEl.value : "",
+        treatment: trEl instanceof HTMLSelectElement ? trEl.value : "",
+      });
+    });
+    s.pavList = arr;
+  } else s.pavList = [];
 
   if (s.heredity === "yes") {
     s.heredityCloseDraft = prev.heredityCloseDraft === true;
