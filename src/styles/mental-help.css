@@ -479,6 +479,12 @@
   display: inline-block;
 }
 
+.mh-life-range {
+  width: 100%;
+  max-width: none;
+  margin: 0.35rem 0 0.25rem;
+}
+
 .mh-life-custom-wrap {
   display: block;
   margin-top: 0.5rem;

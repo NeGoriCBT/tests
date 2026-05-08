@@ -349,6 +349,15 @@ export function emptyLifeStructuredState() {
     alcoholRegularConsequencesLaw: false,
     alcoholRegularConsequencesNarcologist: false,
     pavHad: "",
+    /** @type {string[]} */
+    pavGroups: [],
+    pavGroupsUnknown: false,
+    pavExperience: "",
+    pavLastUse: "",
+    /** @type {"" | "once_or_twice" | "episodic" | "regular_period"} */
+    pavFrequency: "",
+    /** @type {"" | "yes" | "no"} */
+    pavTreatment: "",
     /** @type {PavEntry[]} */
     pavList: [],
   };
@@ -1125,10 +1134,25 @@ function section10WordLines(state) {
     if (t === "все вышеперечисленное") return "все виды алкоголя";
     return String(v ?? "").trim();
   };
+  const formatAlcoholAmount = (v) => {
+    const raw = String(v ?? "").trim();
+    if (!/^\d+(\.\d+)?$/.test(raw)) return raw;
+    let liters = Number(raw);
+    if (!Number.isFinite(liters) || liters < 0) return raw;
+    // Backward compatibility: old scale 0..10 where 1 step = 0.5L.
+    if (liters > 5 && liters <= 10) liters = liters * 0.5;
+    if (liters > 5) return raw;
+    if (liters >= 5) return "5 литров и более";
+    if (liters === 0) return "0 мл";
+    const ml = liters * 1000;
+    if (ml < 1000) return `${ml} мл`;
+    if (Number.isInteger(liters)) return `${liters} л`;
+    return `${String(liters).replace(".", ",")} л`;
+  };
   if (state.alcoholStatus === "none") return ["Алкоголь: Алкоголь не употребляет."];
   if (state.alcoholStatus === "rare") {
     const d = normalizeAlcoholPreference(state.alcoholRareDrink);
-    const a = String(state.alcoholRareAmount ?? "").trim();
+    const a = formatAlcoholAmount(state.alcoholRareAmount);
     const bits = ["Употребляет редко (1–2 раза в месяц и реже)"];
     if (d) bits.push(`обычно ${d}`);
     if (a) bits.push(`в количестве ${a}`);
@@ -1154,20 +1178,19 @@ function section10WordLines(state) {
 function section11WordLines(state, gender) {
   if (state.pavHad === "no") return ["Употребление ПАВ: Употребление ПАВ отрицает."];
   if (state.pavHad !== "yes") return [];
-  const raw = Array.isArray(state.pavList) ? state.pavList : [];
-  const items = raw
-    .map((it) => {
-      const s = String(it?.substance ?? "").trim();
-      if (!s) return "";
-      const freq = phrasePavFrequency(gender, it?.frequency);
-      const last = String(it?.lastUse ?? "").trim();
-      const treat = phrasePavTreatment(gender, it?.treatment);
-      const parts = [freq, last ? `последний раз ${last}` : "", treat].filter(Boolean);
-      return parts.length ? `${s} — ${parts.join(", ")}` : s;
-    })
+  if (state.pavGroupsUnknown === true) return ["Употребление ПАВ: Группы ПАВ не знает."];
+  const groupsRaw = Array.isArray(state.pavGroups) ? state.pavGroups : [];
+  const groups = groupsRaw
+    .filter((x) => typeof x === "string")
+    .map((x) => x.trim())
     .filter(Boolean);
+  const items = groups.length
+    ? groups
+    : (Array.isArray(state.pavList) ? state.pavList : [])
+        .map((it) => String(it?.substance ?? "").trim())
+        .filter(Boolean);
   if (!items.length) return [];
-  return [`Употребление ПАВ: ${items.join("; ")}.`];
+  return [`Употребление ПАВ: ${listWithAnd(items)}.`];
 }
 
 /** @param {"male" | "female" | null} gender */
@@ -3360,12 +3383,43 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   });
   alcoholRare.appendChild(arDrink);
   const arAmt = document.createElement("input");
-  arAmt.type = "text";
+  arAmt.type = "range";
   arAmt.id = "mh-life-alcohol-rare-amount";
-  arAmt.className = "mh-life-text";
-  arAmt.placeholder = "Примерное количество за раз";
-  arAmt.value = String(state.alcoholRareAmount ?? "");
+  arAmt.className = "mh-life-range";
+  arAmt.min = "0";
+  arAmt.max = "5";
+  arAmt.step = "0.25";
+  const rareAmountRaw = String(state.alcoholRareAmount ?? "").trim();
+  if (/^\d+(\.\d+)?$/.test(rareAmountRaw)) {
+    let v = Number(rareAmountRaw);
+    if (Number.isFinite(v)) {
+      if (v > 5 && v <= 10) v = v * 0.5;
+      arAmt.value = v >= 0 && v <= 5 ? String(v) : "0";
+    } else arAmt.value = "0";
+  } else arAmt.value = "0";
   alcoholRare.appendChild(arAmt);
+  const arAmtLab = document.createElement("p");
+  arAmtLab.className = "mh-life-hint";
+  const renderRareAmountLabel = () => {
+    const liters = Number(arAmt.value || "0");
+    if (!Number.isFinite(liters) || liters <= 0) {
+      arAmtLab.textContent = "Примерное количество за раз: 0 мл";
+      return;
+    }
+    if (liters >= 5) {
+      arAmtLab.textContent = "Примерное количество за раз: 5 литров и более";
+      return;
+    }
+    const ml = liters * 1000;
+    if (ml < 1000) {
+      arAmtLab.textContent = `Примерное количество за раз: ${ml} мл`;
+      return;
+    }
+    arAmtLab.textContent = `Примерное количество за раз: ${Number.isInteger(liters) ? liters : String(liters).replace(".", ",")} л`;
+  };
+  renderRareAmountLabel();
+  arAmt.addEventListener("input", renderRareAmountLabel);
+  alcoholRare.appendChild(arAmtLab);
   fsB16.appendChild(alcoholRare);
   const alcoholReg = document.createElement("div");
   alcoholReg.className = "mh-life-early-sub";
@@ -3410,7 +3464,8 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
       alcoholReg.hidden = v !== "regular";
       if (v !== "rare") {
         arDrink.value = "";
-        arAmt.value = "";
+        arAmt.value = "0";
+        renderRareAmountLabel();
       }
       if (v !== "regular") {
         regPref.value = "";
@@ -3428,90 +3483,88 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   const pavWrap = document.createElement("div");
   pavWrap.className = "mh-life-early-sub";
   pavWrap.hidden = state.pavHad !== "yes";
-  const pavList = document.createElement("div");
-  pavList.className = "mh-life-childhood-visits-list";
-  pavWrap.appendChild(pavList);
-  const pavStates = Array.isArray(state.pavList) && state.pavList.length ? state.pavList : [{ substance: "", lastUse: "", frequency: "", treatment: "" }];
-  function reflowPav(mutator) {
-    const y = window.scrollY;
-    readLifeStructuredFromDom(contentEl, answers);
-    const st = parseLifeStructuredString(answers[LIFE_STRUCTURED_ID]);
-    mutator(st);
-    answers[LIFE_STRUCTURED_ID] = JSON.stringify(st);
-    renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, gender, nextWizardBtn);
-    window.requestAnimationFrame(() => window.scrollTo({ top: y }));
+  const selectedPavGroups = Array.isArray(state.pavGroups) ? state.pavGroups : [];
+  const pavOptions = [
+    "Опиаты и опиоиды",
+    "Каннабиноиды",
+    "Психостимуляторы",
+    "Галлюциногены",
+    "Снотворно-седативные средства",
+    "Синтетические наркотики",
+  ];
+  pavOptions.forEach((label, idx) => {
+    pavWrap.appendChild(mkCheck(`mh-life-pav-group-${idx}`, label, selectedPavGroups.includes(label)));
+  });
+  const pavUnknownLab = mkCheck("mh-life-pav-group-unknown", "Не знаю", state.pavGroupsUnknown === true);
+  pavWrap.appendChild(pavUnknownLab);
+  const pavExtraWrap = document.createElement("div");
+  pavExtraWrap.className = "mh-life-early-sub";
+  const pavExp = document.createElement("input");
+  pavExp.type = "text";
+  pavExp.id = "mh-life-pav-experience";
+  pavExp.className = "mh-life-text";
+  pavExp.placeholder = "Стаж (например: 3 года)";
+  pavExp.value = String(state.pavExperience ?? "");
+  pavExtraWrap.appendChild(pavExp);
+  const pavLast = document.createElement("input");
+  pavLast.type = "text";
+  pavLast.id = "mh-life-pav-last";
+  pavLast.className = "mh-life-text";
+  pavLast.placeholder = "Последнее употребление (в возрасте X лет / в YYYY году)";
+  pavLast.value = String(state.pavLastUse ?? "");
+  pavExtraWrap.appendChild(pavLast);
+  const pavFreq = document.createElement("select");
+  pavFreq.id = "mh-life-pav-freq";
+  pavFreq.className = "mh-life-select";
+  [
+    ["", "Частота —"],
+    ["once_or_twice", "1–2 раза в жизни"],
+    ["episodic", "Эпизодически"],
+    ["regular_period", "Был период регулярного употребления"],
+  ].forEach(([v, t]) => {
+    const o = document.createElement("option");
+    o.value = v;
+    o.textContent = t;
+    if (String(state.pavFrequency ?? "") === v) o.selected = true;
+    pavFreq.appendChild(o);
+  });
+  pavExtraWrap.appendChild(pavFreq);
+  const pavTreatment = document.createElement("select");
+  pavTreatment.id = "mh-life-pav-treatment";
+  pavTreatment.className = "mh-life-select";
+  [
+    ["", "Лечение —"],
+    ["yes", "Лечение от зависимости проходил(а)"],
+    ["no", "Лечение от зависимости не проходил(а)"],
+  ].forEach(([v, t]) => {
+    const o = document.createElement("option");
+    o.value = v;
+    o.textContent = t;
+    if (String(state.pavTreatment ?? "") === v) o.selected = true;
+    pavTreatment.appendChild(o);
+  });
+  pavExtraWrap.appendChild(pavTreatment);
+  pavWrap.appendChild(pavExtraWrap);
+  const pavUnknownCb = pavUnknownLab.querySelector("input");
+  const syncPavUnknown = () => {
+    const isUnknown = pavUnknownCb instanceof HTMLInputElement && pavUnknownCb.checked;
+    if (!isUnknown) return;
+    pavOptions.forEach((_, idx) => {
+      const cb = pavWrap.querySelector(`#mh-life-pav-group-${idx}`);
+      if (cb instanceof HTMLInputElement) cb.checked = false;
+    });
+  };
+  if (pavUnknownCb instanceof HTMLInputElement) {
+    pavUnknownCb.addEventListener("change", syncPavUnknown);
   }
-  pavStates.forEach((it, idx) => {
-    const row = document.createElement("div");
-    row.className = "mh-life-childhood-visit";
-    const sub = document.createElement("input");
-    sub.type = "text";
-    sub.className = "mh-life-text mh-life-pav-substance";
-    sub.placeholder = "Какое вещество";
-    sub.value = String(it.substance ?? "");
-    row.appendChild(sub);
-    const last = document.createElement("input");
-    last.type = "text";
-    last.className = "mh-life-text mh-life-pav-last";
-    last.placeholder = "Последний раз (в возрасте X лет / в YYYY году)";
-    last.value = String(it.lastUse ?? "");
-    row.appendChild(last);
-    const fSel = document.createElement("select");
-    fSel.className = "mh-life-select mh-life-pav-freq";
-    [
-      ["", "Частота —"],
-      ["once_or_twice", "1–2 раза в жизни"],
-      ["episodic", "Эпизодически"],
-      ["regular_period", "Был период регулярного употребления"],
-    ].forEach(([v, t]) => {
-      const o = document.createElement("option");
-      o.value = v;
-      o.textContent = t;
-      if (it.frequency === v) o.selected = true;
-      fSel.appendChild(o);
-    });
-    row.appendChild(fSel);
-    const tSel = document.createElement("select");
-    tSel.className = "mh-life-select mh-life-pav-treatment";
-    [
-      ["", "Лечение —"],
-      ["yes", "Лечение от зависимости проходил(а)"],
-      ["no", "Лечение от зависимости не проходил(а)"],
-    ].forEach(([v, t]) => {
-      const o = document.createElement("option");
-      o.value = v;
-      o.textContent = t;
-      if (it.treatment === v) o.selected = true;
-      tSel.appendChild(o);
-    });
-    row.appendChild(tSel);
-    const del = document.createElement("button");
-    del.type = "button";
-    del.className = "mh-life-heredity-remove";
-    del.textContent = "Удалить";
-    del.hidden = pavStates.length <= 1;
-    del.addEventListener("click", () => {
-      reflowPav((st) => {
-        const arr = Array.isArray(st.pavList) ? st.pavList : [];
-        arr.splice(idx, 1);
-        st.pavList = arr.length ? arr : [{ substance: "", lastUse: "", frequency: "", treatment: "" }];
+  pavOptions.forEach((_, idx) => {
+    const cb = pavWrap.querySelector(`#mh-life-pav-group-${idx}`);
+    if (cb instanceof HTMLInputElement) {
+      cb.addEventListener("change", () => {
+        if (cb.checked && pavUnknownCb instanceof HTMLInputElement) pavUnknownCb.checked = false;
       });
-    });
-    row.appendChild(del);
-    pavList.appendChild(row);
+    }
   });
-  const pavAdd = document.createElement("button");
-  pavAdd.type = "button";
-  pavAdd.className = "mh-life-add-case";
-  pavAdd.textContent = "Добавить вещество";
-  pavAdd.addEventListener("click", () => {
-    reflowPav((st) => {
-      const arr = Array.isArray(st.pavList) ? st.pavList : [];
-      arr.push({ substance: "", lastUse: "", frequency: "", treatment: "" });
-      st.pavList = arr;
-    });
-  });
-  pavWrap.appendChild(pavAdd);
   fsB16.appendChild(pavWrap);
   fsB16.querySelectorAll('input[name="mh-life-pav-had"]').forEach((el) => {
     el.addEventListener("change", () => {
@@ -4059,23 +4112,34 @@ export function readLifeStructuredFromDom(contentEl, answers) {
   const pavh = contentEl.querySelector('input[name="mh-life-pav-had"]:checked');
   s.pavHad = pavh && "value" in pavh ? pavh.value : "";
   if (s.pavHad === "yes") {
-    /** @type {PavEntry[]} */
-    const arr = [];
-    contentEl.querySelectorAll(".mh-life-pav-substance").forEach((el, idx) => {
-      if (!(el instanceof HTMLInputElement)) return;
-      const sub = el.value.trim();
-      const lastEl = contentEl.querySelectorAll(".mh-life-pav-last")[idx];
-      const freqEl = contentEl.querySelectorAll(".mh-life-pav-freq")[idx];
-      const trEl = contentEl.querySelectorAll(".mh-life-pav-treatment")[idx];
-      arr.push({
-        substance: sub,
-        lastUse: lastEl instanceof HTMLInputElement ? lastEl.value.trim() : "",
-        frequency: freqEl instanceof HTMLSelectElement ? freqEl.value : "",
-        treatment: trEl instanceof HTMLSelectElement ? trEl.value : "",
-      });
+    /** @type {string[]} */
+    const groups = [];
+    [
+      "Опиаты и опиоиды",
+      "Каннабиноиды",
+      "Психостимуляторы",
+      "Галлюциногены",
+      "Снотворно-седативные средства",
+      "Синтетические наркотики",
+    ].forEach((label, idx) => {
+      if (chk(contentEl, `#mh-life-pav-group-${idx}`)) groups.push(label);
     });
-    s.pavList = arr;
-  } else s.pavList = [];
+    s.pavGroupsUnknown = chk(contentEl, "#mh-life-pav-group-unknown");
+    s.pavGroups = groups;
+    s.pavExperience = valOf(contentEl, "#mh-life-pav-experience");
+    s.pavLastUse = valOf(contentEl, "#mh-life-pav-last");
+    s.pavFrequency = valOf(contentEl, "#mh-life-pav-freq");
+    s.pavTreatment = valOf(contentEl, "#mh-life-pav-treatment");
+    s.pavList = [];
+  } else {
+    s.pavGroups = [];
+    s.pavGroupsUnknown = false;
+    s.pavExperience = "";
+    s.pavLastUse = "";
+    s.pavFrequency = "";
+    s.pavTreatment = "";
+    s.pavList = [];
+  }
 
   if (s.heredity === "yes") {
     s.heredityCloseDraft = prev.heredityCloseDraft === true;
