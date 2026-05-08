@@ -89,7 +89,7 @@ function renderForm() {
   SIFS_SCALE.forEach((col) => {
     const th = document.createElement("th");
     th.className = "sifs-th-score";
-    th.textContent = String(col.score);
+    th.textContent = col.text.replace(/^Утверждение\s+/i, "");
     th.title = col.text;
     hr.appendChild(th);
   });

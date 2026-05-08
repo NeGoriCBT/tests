@@ -1,8 +1,9 @@
-/* SIFS: компактные заголовки колонок 0–4 и метка обратного пункта */
+/* SIFS: заголовки колонок шкалы и метка обратного пункта */
 
 .sifs-th-score {
   font-size: 0.85rem;
   line-height: 1.2;
+  white-space: normal;
 }
 
 .sifs-rev {

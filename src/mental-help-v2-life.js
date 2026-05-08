@@ -87,9 +87,9 @@ const SECTION2_SYMPTOM_LABELS = {
   memory_attention_decline: "значительное ухудшение памяти/внимания",
 };
 
-/** @typedef {{ name: string; age: string; anesthesia: "" | "yes" | "no" | "unknown" }} OperationEntry */
-/** @typedef {{ age: string; cause: string }} SyncopeEntry */
-/** @typedef {{ age: string; circumstance: "" | "dtp" | "head_hit" | "fall" | "fight" | "unknown"; lossDuration: "" | "seconds" | "minutes" | "over_hour" | "unknown"; exam: "" | "ct" | "mri" | "no" | "unknown" }} TbiEntry */
+/** @typedef {{ name: string; age: string; ageUnknown?: boolean; anesthesia: "" | "yes" | "no" | "unknown" }} OperationEntry */
+/** @typedef {{ age: string; ageUnknown?: boolean; cause: string }} SyncopeEntry */
+/** @typedef {{ age: string; ageUnknown?: boolean; circumstance: "" | "dtp" | "head_hit" | "fall" | "fight" | "unknown"; lossDuration: "" | "seconds" | "minutes" | "over_hour" | "unknown"; exam: "" | "ct" | "mri" | "no" | "unknown" }} TbiEntry */
 /** @typedef {{ trigger: string; reactions: string[] }} AllergyEntry */
 /** @typedef {{ substance: string; lastUse: string; frequency: "" | "once_or_twice" | "episodic" | "regular_period"; treatment: "" | "yes" | "no" }} PavEntry */
 
@@ -251,6 +251,7 @@ export function emptyLifeStructuredState() {
     childhoodSpecialists: "",
     /** @type {ChildhoodVisit[]} */
     childhoodVisits: [],
+    childhoodVisitsCloseDraft: false,
     schoolTypeGeneral: false,
     schoolTypeGymnasium: false,
     schoolTypeLyceum: false,
@@ -482,6 +483,8 @@ export function parseLifeStructuredString(jsonStr) {
       if (Object.prototype.hasOwnProperty.call(raw, "childhoodVisits")) {
         base.childhoodVisits = normalizeChildhoodVisits(raw.childhoodVisits);
       }
+    } else if (k === "childhoodVisitsCloseDraft") {
+      base.childhoodVisitsCloseDraft = raw.childhoodVisitsCloseDraft === true;
     } else if (k === "childhoodSpecialists") {
       const v = raw.childhoodSpecialists;
       base.childhoodSpecialists = v === "yes" || v === "no" ? v : "";
@@ -893,9 +896,11 @@ function block6WordLines(state, gender) {
   if (state.schoolAdaptation === "unknown") lines.push("Проблем адаптации не помнит.");
 
   const perf = schoolPerfLabel(String(state.schoolPerformance ?? ""));
+  const studiedAtSchool =
+    gender === "male" ? "Учился" : gender === "female" ? "Училась" : "Учился(лась)";
   if (state.schoolPerformance) {
-    if (state.schoolPerformance === "weakWithDebts") lines.push(`Учился(лась) ${perf}.`);
-    else lines.push(`Учился(лась) как ${perf}.`);
+    if (state.schoolPerformance === "weakWithDebts") lines.push(`${studiedAtSchool} ${perf}.`);
+    else lines.push(`${studiedAtSchool} как ${perf}.`);
   }
 
   const peer = [];
@@ -967,11 +972,13 @@ function section3WordLines(state) {
     .map((it) => {
       const name = String(it?.name ?? "").trim();
       const age = String(it?.age ?? "").trim();
+      const ageUnknown = it?.ageUnknown === true;
       const an = it?.anesthesia;
-      if (!name || !age) return "";
+      if (!name || (!age && !ageUnknown)) return "";
       const anText =
         an === "yes" ? "с наркозом" : an === "no" ? "без наркоза" : an === "unknown" ? "наличие наркоза неизвестно" : "";
-      return anText ? `${name} (в возрасте ${age} лет, ${anText})` : `${name} (в возрасте ${age} лет)`;
+      const ageText = ageUnknown ? "возраст не помнит" : `в возрасте ${age} лет`;
+      return anText ? `${name} (${ageText}, ${anText})` : `${name} (${ageText})`;
     })
     .filter(Boolean);
   if (!items.length) return [];
@@ -986,9 +993,11 @@ function section4WordLines(state) {
   const items = raw
     .map((it) => {
       const age = String(it?.age ?? "").trim();
+      const ageUnknown = it?.ageUnknown === true;
       const cause = String(it?.cause ?? "").trim();
-      if (!age) return "";
-      return cause ? `обморок в возрасте ${age} лет (${cause})` : `обморок в возрасте ${age} лет`;
+      if (!age && !ageUnknown) return "";
+      const ageText = ageUnknown ? "обморок, возраст не помнит" : `обморок в возрасте ${age} лет`;
+      return cause ? `${ageText} (${cause})` : ageText;
     })
     .filter(Boolean);
   if (!items.length) return [];
@@ -1022,12 +1031,14 @@ function section5WordLines(state) {
   const items = raw
     .map((it) => {
       const age = String(it?.age ?? "").trim();
-      if (!age) return "";
+      const ageUnknown = it?.ageUnknown === true;
+      if (!age && !ageUnknown) return "";
       const parts = [];
       if (it?.circumstance && cMap[it.circumstance]) parts.push(cMap[it.circumstance]);
       if (it?.lossDuration && dMap[it.lossDuration]) parts.push(dMap[it.lossDuration]);
       if (it?.exam && eMap[it.exam]) parts.push(eMap[it.exam]);
-      return parts.length ? `ЧМТ в возрасте ${age} лет (${parts.join(", ")})` : `ЧМТ в возрасте ${age} лет`;
+      const ageText = ageUnknown ? "ЧМТ, возраст не помнит" : `ЧМТ в возрасте ${age} лет`;
+      return parts.length ? `${ageText} (${parts.join(", ")})` : ageText;
     })
     .filter(Boolean);
   if (!items.length) return [];
@@ -1337,7 +1348,7 @@ function summarizeCaseForUi(c) {
  * @param {HTMLButtonElement | null} nextWizardBtn
  */
 export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, gender, nextWizardBtn) {
-  const step = { blockLead: { title: "3 блок. Анамнез жизни", intro: "Заполните поля ниже." }, codeLabel: "Анамнез жизни", prompt: "" };
+  const step = { blockLead: { title: "Анамнез жизни", intro: "Заполните поля ниже." }, codeLabel: "Анамнез жизни", prompt: "" };
   const state = parseLifeStructuredString(answers[LIFE_STRUCTURED_ID]);
 
   contentEl.replaceChildren();
@@ -1358,10 +1369,12 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   function fieldset(title) {
     const fs = document.createElement("fieldset");
     fs.className = "mh-life-fieldset";
-    const leg = document.createElement("legend");
-    leg.className = "mh-life-legend";
-    leg.textContent = title;
-    fs.appendChild(leg);
+    if (title) {
+      const leg = document.createElement("legend");
+      leg.className = "mh-life-legend";
+      leg.textContent = title;
+      fs.appendChild(leg);
+    }
     return fs;
   }
 
@@ -1403,7 +1416,8 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
     gender === "female" ? "Не окончила школу" : gender === "male" ? "Не окончил школу" : "Не окончил(а) школу";
   const uiSmokingPast = gender === "female" ? "Бросила" : gender === "male" ? "Бросил" : "Бросил(а)";
 
-  const fs0 = fieldset("Ответ");
+  const fs0 = fieldset("");
+  fs0.classList.add("mh-life-fieldset--plain");
   fs0.appendChild(radioRow("mh-life-heredity", "yes", "Да", state.heredity === "yes"));
   fs0.appendChild(radioRow("mh-life-heredity", "no", "Нет", state.heredity === "no"));
   fs0.appendChild(radioRow("mh-life-heredity", "unknown", "Не знаю", state.heredity === "unknown"));
@@ -1610,7 +1624,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   btnClearDraft.addEventListener("click", () => resetHeredityDraftForm());
   btnReopenDraft.addEventListener("click", () => setHeredityCloseDraft(false));
 
-  const fsB2 = fieldset("Блок 2. Рождение и семья");
+  const fsB2 = fieldset("Блок 1. Рождение и семья");
   const qH = document.createElement("p");
   qH.className = "mh-life-edu-title";
   qH.textContent = "Были ли у Ваших родственников установленные расстройства психики?";
@@ -1621,14 +1635,14 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
 
   const q2a = document.createElement("p");
   q2a.className = "mh-life-edu-title";
-  q2a.textContent = "Вы родились в полной семье?";
+  q2a.textContent = "Вопрос 1. Вы родились в полной семье?";
   fsB2.appendChild(q2a);
   fsB2.appendChild(radioRow("mh-life-birth", "full", "Да", state.birthFamily === "full"));
   fsB2.appendChild(radioRow("mh-life-birth", "incomplete", "Нет", state.birthFamily === "incomplete"));
 
   const q2b = document.createElement("p");
   q2b.className = "mh-life-edu-title";
-  q2b.textContent = "Каким по счету ребенком вы родились?";
+  q2b.textContent = "Вопрос 2. Каким по счету ребенком вы родились?";
   fsB2.appendChild(q2b);
   const ordRow = document.createElement("div");
   ordRow.className = "mh-life-row";
@@ -1672,7 +1686,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
 
   const q3 = document.createElement("p");
   q3.className = "mh-life-edu-title";
-  q3.textContent = "3 вопрос. В какой срок Вы родились?";
+  q3.textContent = "Вопрос 3. В какой срок Вы родились?";
   fsB2.appendChild(q3);
   fsB2.appendChild(radioRow("mh-life-birth-term", "term", "в срок (37-42 недели)", state.birthTerm === "term"));
   fsB2.appendChild(
@@ -1685,7 +1699,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
 
   const q4 = document.createElement("p");
   q4.className = "mh-life-edu-title";
-  q4.textContent = "5 вопрос. Как протекали роды?";
+  q4.textContent = "Вопрос 4. Как протекали роды?";
   fsB2.appendChild(q4);
   fsB2.appendChild(radioRow("mh-life-birth-delivery", "self", "Самостоятельные", state.birthDelivery === "self"));
   fsB2.appendChild(radioRow("mh-life-birth-delivery", "cesarean", "Кесарево сечение", state.birthDelivery === "cesarean"));
@@ -1693,7 +1707,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
 
   const q5 = document.createElement("p");
   q5.className = "mh-life-edu-title";
-  q5.textContent = "5 вопрос. Течение родов:";
+  q5.textContent = "Вопрос 5. Течение родов:";
   fsB2.appendChild(q5);
   fsB2.appendChild(radioRow("mh-life-birth-course", "normal", "Без осложнений", state.birthCourse === "normal"));
   fsB2.appendChild(radioRow("mh-life-birth-course", "complicated", "С осложнениями", state.birthCourse === "complicated"));
@@ -1720,7 +1734,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
 
   const q6 = document.createElement("p");
   q6.className = "mh-life-edu-title";
-  q6.textContent = "Была ли родовая травма?";
+  q6.textContent = "Вопрос 6. Была ли родовая травма?";
   fsB2.appendChild(q6);
   fsB2.appendChild(radioRow("mh-life-birth-trauma", "yes", "Да", state.birthTrauma === "yes"));
   fsB2.appendChild(radioRow("mh-life-birth-trauma", "no", "Нет", state.birthTrauma === "no"));
@@ -1747,7 +1761,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
 
   contentEl.appendChild(fsB2);
 
-  const fsB3 = fieldset("Блок 3. Раннее развитие");
+  const fsB3 = fieldset("Блок 2. Раннее развитие");
 
   const q31 = document.createElement("p");
   q31.className = "mh-life-edu-title";
@@ -1925,11 +1939,13 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   chYesWrap.id = "mh-life-childhood-yes-wrap";
   chYesWrap.className = "mh-life-childhood-yes-wrap";
   chYesWrap.hidden = state.childhoodSpecialists !== "yes";
+  const childhoodDraftClosed = state.childhoodSpecialists === "yes" && state.childhoodVisitsCloseDraft === true;
 
   const visitsHint = document.createElement("p");
   visitsHint.className = "mh-life-hint";
-  visitsHint.textContent =
-    "Для каждого специалиста выберите врача из списка или «Свой вариант», укажите причину наблюдения либо отметьте «Не знаю причину».";
+  visitsHint.textContent = childhoodDraftClosed
+    ? "Перечисление завершено. Нажмите «Добавить ещё», если нужно указать еще одного специалиста."
+    : "Для каждого специалиста выберите врача из списка или «Свой вариант», укажите причину наблюдения либо отметьте «Не знаю причину».";
   chYesWrap.appendChild(visitsHint);
 
   const visitsList = document.createElement("div");
@@ -2068,6 +2084,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
       const arr = normalizeChildhoodVisits(st.childhoodVisits);
       arr.push({ specialist: "neuro", customOther: "", reason: "", reasonUnknown: false });
       st.childhoodVisits = arr;
+      st.childhoodVisitsCloseDraft = false;
     });
   });
   const chActions = document.createElement("div");
@@ -2087,6 +2104,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
         return Boolean(String(v.reason ?? "").trim());
       });
       st.childhoodVisits = arr;
+      st.childhoodVisitsCloseDraft = true;
     });
   });
   chActions.appendChild(btnFinishChildhood);
@@ -2099,8 +2117,25 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   btnCancelChildhood.addEventListener("click", () => {
     reflowChildhood((st) => {
       st.childhoodVisits = [{ specialist: "neuro", customOther: "", reason: "", reasonUnknown: false }];
+      st.childhoodVisitsCloseDraft = false;
     });
   });
+  addChBtn.hidden = childhoodDraftClosed;
+  btnFinishChildhood.hidden = childhoodDraftClosed;
+  btnCancelChildhood.hidden = childhoodDraftClosed;
+  const btnReopenChildhood = document.createElement("button");
+  btnReopenChildhood.type = "button";
+  btnReopenChildhood.className = "mh-life-add-case";
+  btnReopenChildhood.textContent = "Добавить ещё";
+  btnReopenChildhood.hidden = !childhoodDraftClosed;
+  btnReopenChildhood.addEventListener("click", () => {
+    reflowChildhood((st) => {
+      st.childhoodVisitsCloseDraft = false;
+      const arr = normalizeChildhoodVisits(st.childhoodVisits);
+      st.childhoodVisits = arr.length ? arr : [{ specialist: "neuro", customOther: "", reason: "", reasonUnknown: false }];
+    });
+  });
+  chActions.appendChild(btnReopenChildhood);
   chActions.appendChild(btnCancelChildhood);
   chYesWrap.appendChild(chActions);
 
@@ -2109,13 +2144,29 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   fsB3.querySelectorAll('input[name="mh-life-childhood"]').forEach((el) => {
     el.addEventListener("change", () => {
       const inp = contentEl.querySelector('input[name="mh-life-childhood"]:checked');
-      chYesWrap.hidden = !(inp instanceof HTMLInputElement && inp.value === "yes");
+      const yes = inp instanceof HTMLInputElement && inp.value === "yes";
+      if (yes) {
+        if (state.childhoodVisitsCloseDraft === true) {
+          chYesWrap.hidden = false;
+          return;
+        }
+        const hasVisits = chYesWrap.querySelectorAll(".mh-life-childhood-visit").length > 0;
+        if (!hasVisits) {
+          reflowChildhood((st) => {
+            const arr = normalizeChildhoodVisits(st.childhoodVisits);
+            st.childhoodVisits = arr.length ? arr : [{ specialist: "neuro", customOther: "", reason: "", reasonUnknown: false }];
+            st.childhoodVisitsCloseDraft = false;
+          });
+          return;
+        }
+      }
+      chYesWrap.hidden = !yes;
     });
   });
 
   contentEl.appendChild(fsB3);
 
-  const fsB6 = fieldset("Блок 6. Школа");
+  const fsB6 = fieldset("Блок 3. Школа");
   const q61 = document.createElement("p");
   q61.className = "mh-life-edu-title";
   q61.textContent = "Вопрос 1. Со скольки лет пошли в первый класс?";
@@ -2401,13 +2452,13 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   contentEl.appendChild(fsB6);
 
   if (gender === "male") {
-    const fsB7 = fieldset("Блок 7. Армия");
+    const fsB7 = fieldset("Блок 4. Армия");
     fsB7.appendChild(radioRow("mh-life-army", "served", "Служил", state.army === "served"));
     fsB7.appendChild(radioRow("mh-life-army", "not", "Не служил", state.army === "not"));
     contentEl.appendChild(fsB7);
   }
 
-  const fsB8 = fieldset("Блок 8. Образование");
+  const fsB8 = fieldset("Блок 5. Образование");
   const eduNoneLab = mkCheck(
     "mh-life-edu-none-after-school",
     "Не получал образование после школы",
@@ -2436,10 +2487,10 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   }
   contentEl.appendChild(fsB8);
 
-  const fsB9 = fieldset("Блок 9. Перенесенные заболевания");
+  const fsB9 = fieldset("Блок 6. Перенесенные заболевания");
   const q21 = document.createElement("p");
   q21.className = "mh-life-edu-title";
-  q21.textContent = "Вопрос 2.1. Переносили ли Вы какие-либо из перечисленных заболеваний или состояний?";
+  q21.textContent = "Вопрос 1. Переносили ли Вы какие-либо из перечисленных заболеваний или состояний?";
   fsB9.appendChild(q21);
   const mkDisease = (id, label, checked) => {
     const lab = mkCheck(id, label, checked);
@@ -2578,7 +2629,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   q22Wrap.className = "mh-life-early-sub";
   const q22 = document.createElement("p");
   q22.className = "mh-life-edu-title";
-  q22.textContent = "Вопрос 2.2. Отмечались ли у Вас после этих заболеваний какие-либо из следующих состояний?";
+  q22.textContent = "Вопрос 2. Отмечались ли у Вас после этих заболеваний какие-либо из следующих состояний?";
   q22Wrap.appendChild(q22);
   q22Wrap.appendChild(
     mkCheck(
@@ -2678,10 +2729,10 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   updateS2PsychVisibility();
   contentEl.appendChild(fsB9);
 
-  const fsB10 = fieldset("Блок 10. Раздел 3. Операции");
+  const fsB10 = fieldset("Блок 7. Операции");
   const q101 = document.createElement("p");
   q101.className = "mh-life-edu-title";
-  q101.textContent = "Вопрос 3.1. Были ли у Вас хирургические операции?";
+  q101.textContent = "Вопрос 1. Были ли у Вас хирургические операции?";
   fsB10.appendChild(q101);
   fsB10.appendChild(radioRow("mh-life-op-had", "yes", "Да", state.operationsHad === "yes"));
   fsB10.appendChild(radioRow("mh-life-op-had", "no", "Нет", state.operationsHad === "no"));
@@ -2691,7 +2742,10 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   const opList = document.createElement("div");
   opList.className = "mh-life-childhood-visits-list";
   opWrap.appendChild(opList);
-  const opStates = Array.isArray(state.operationsList) && state.operationsList.length ? state.operationsList : [{ name: "", age: "", anesthesia: "" }];
+  const opStates =
+    Array.isArray(state.operationsList) && state.operationsList.length
+      ? state.operationsList
+      : [{ name: "", age: "", ageUnknown: false, anesthesia: "" }];
   function reflowOps(mutator) {
     const y = window.scrollY;
     readLifeStructuredFromDom(contentEl, answers);
@@ -2720,7 +2774,21 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
     age.className = "mh-life-text mh-life-text--narrow mh-life-op-age";
     age.value = String(it.age ?? "");
     age.placeholder = "Возраст";
+    age.disabled = it.ageUnknown === true;
     row.appendChild(age);
+    const ageUnknownWrap = document.createElement("label");
+    ageUnknownWrap.className = "mh-life-row";
+    const ageUnknown = document.createElement("input");
+    ageUnknown.type = "checkbox";
+    ageUnknown.className = "mh-life-op-age-unknown";
+    ageUnknown.checked = it.ageUnknown === true;
+    ageUnknown.addEventListener("change", () => {
+      age.disabled = ageUnknown.checked;
+      if (ageUnknown.checked) age.value = "";
+    });
+    ageUnknownWrap.appendChild(ageUnknown);
+    ageUnknownWrap.appendChild(document.createTextNode(" Не помню возраст"));
+    row.appendChild(ageUnknownWrap);
     const anWrap = document.createElement("div");
     anWrap.className = "mh-life-row";
     anWrap.appendChild(radioRowStatic(`mh-life-op-an-${idx}`, "yes", "С наркозом", it.anesthesia === "yes"));
@@ -2736,7 +2804,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
       reflowOps((st) => {
         const arr = Array.isArray(st.operationsList) ? st.operationsList : [];
         arr.splice(idx, 1);
-        st.operationsList = arr.length ? arr : [{ name: "", age: "", anesthesia: "" }];
+        st.operationsList = arr.length ? arr : [{ name: "", age: "", ageUnknown: false, anesthesia: "" }];
       });
     });
     row.appendChild(del);
@@ -2749,7 +2817,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   opAdd.addEventListener("click", () => {
     reflowOps((st) => {
       const arr = Array.isArray(st.operationsList) ? st.operationsList : [];
-      arr.push({ name: "", age: "", anesthesia: "" });
+      arr.push({ name: "", age: "", ageUnknown: false, anesthesia: "" });
       st.operationsList = arr;
     });
   });
@@ -2763,10 +2831,10 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   });
   contentEl.appendChild(fsB10);
 
-  const fsB11 = fieldset("Блок 11. Раздел 4. Потери сознания (без ЧМТ)");
+  const fsB11 = fieldset("Блок 8. Потери сознания (без ЧМТ)");
   const q41 = document.createElement("p");
   q41.className = "mh-life-edu-title";
-  q41.textContent = "Вопрос 4.1. Были ли потери сознания (обмороки) без ЧМТ?";
+  q41.textContent = "Вопрос 1. Были ли потери сознания (обмороки) без ЧМТ?";
   fsB11.appendChild(q41);
   fsB11.appendChild(radioRow("mh-life-sync-had", "yes", "Да", state.syncopeNoTbiHad === "yes"));
   fsB11.appendChild(radioRow("mh-life-sync-had", "no", "Нет", state.syncopeNoTbiHad === "no"));
@@ -2776,7 +2844,10 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   const syncList = document.createElement("div");
   syncList.className = "mh-life-childhood-visits-list";
   syncWrap.appendChild(syncList);
-  const syncStates = Array.isArray(state.syncopeNoTbiList) && state.syncopeNoTbiList.length ? state.syncopeNoTbiList : [{ age: "", cause: "" }];
+  const syncStates =
+    Array.isArray(state.syncopeNoTbiList) && state.syncopeNoTbiList.length
+      ? state.syncopeNoTbiList
+      : [{ age: "", ageUnknown: false, cause: "" }];
   function reflowSync(mutator) {
     const y = window.scrollY;
     readLifeStructuredFromDom(contentEl, answers);
@@ -2795,7 +2866,21 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
     age.className = "mh-life-text mh-life-text--narrow mh-life-sync-age";
     age.value = String(it.age ?? "");
     age.placeholder = "Возраст";
+    age.disabled = it.ageUnknown === true;
     row.appendChild(age);
+    const ageUnknownWrap = document.createElement("label");
+    ageUnknownWrap.className = "mh-life-row";
+    const ageUnknown = document.createElement("input");
+    ageUnknown.type = "checkbox";
+    ageUnknown.className = "mh-life-sync-age-unknown";
+    ageUnknown.checked = it.ageUnknown === true;
+    ageUnknown.addEventListener("change", () => {
+      age.disabled = ageUnknown.checked;
+      if (ageUnknown.checked) age.value = "";
+    });
+    ageUnknownWrap.appendChild(ageUnknown);
+    ageUnknownWrap.appendChild(document.createTextNode(" Не помню возраст"));
+    row.appendChild(ageUnknownWrap);
     const cause = document.createElement("input");
     cause.type = "text";
     cause.className = "mh-life-text mh-life-sync-cause";
@@ -2811,7 +2896,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
       reflowSync((st) => {
         const arr = Array.isArray(st.syncopeNoTbiList) ? st.syncopeNoTbiList : [];
         arr.splice(idx, 1);
-        st.syncopeNoTbiList = arr.length ? arr : [{ age: "", cause: "" }];
+        st.syncopeNoTbiList = arr.length ? arr : [{ age: "", ageUnknown: false, cause: "" }];
       });
     });
     row.appendChild(del);
@@ -2824,7 +2909,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   syncAdd.addEventListener("click", () => {
     reflowSync((st) => {
       const arr = Array.isArray(st.syncopeNoTbiList) ? st.syncopeNoTbiList : [];
-      arr.push({ age: "", cause: "" });
+      arr.push({ age: "", ageUnknown: false, cause: "" });
       st.syncopeNoTbiList = arr;
     });
   });
@@ -2838,10 +2923,10 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   });
   contentEl.appendChild(fsB11);
 
-  const fsB12 = fieldset("Блок 12. Раздел 5. ЧМТ с потерей сознания");
+  const fsB12 = fieldset("Блок 9. ЧМТ с потерей сознания");
   const q51 = document.createElement("p");
   q51.className = "mh-life-edu-title";
-  q51.textContent = "Вопрос 5.1. Были ли ЧМТ, сопровождавшиеся потерей сознания?";
+  q51.textContent = "Вопрос 1. Были ли ЧМТ, сопровождавшиеся потерей сознания?";
   fsB12.appendChild(q51);
   fsB12.appendChild(radioRow("mh-life-tbi-had", "yes", "Да", state.tbiWithLossHad === "yes"));
   fsB12.appendChild(radioRow("mh-life-tbi-had", "no", "Нет", state.tbiWithLossHad === "no"));
@@ -2854,7 +2939,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   const tbiStates =
     Array.isArray(state.tbiWithLossList) && state.tbiWithLossList.length
       ? state.tbiWithLossList
-      : [{ age: "", circumstance: "", lossDuration: "", exam: "" }];
+      : [{ age: "", ageUnknown: false, circumstance: "", lossDuration: "", exam: "" }];
   function reflowTbi(mutator) {
     const y = window.scrollY;
     readLifeStructuredFromDom(contentEl, answers);
@@ -2873,7 +2958,21 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
     age.className = "mh-life-text mh-life-text--narrow mh-life-tbi-age";
     age.value = String(it.age ?? "");
     age.placeholder = "Возраст";
+    age.disabled = it.ageUnknown === true;
     row.appendChild(age);
+    const ageUnknownWrap = document.createElement("label");
+    ageUnknownWrap.className = "mh-life-row";
+    const ageUnknown = document.createElement("input");
+    ageUnknown.type = "checkbox";
+    ageUnknown.className = "mh-life-tbi-age-unknown";
+    ageUnknown.checked = it.ageUnknown === true;
+    ageUnknown.addEventListener("change", () => {
+      age.disabled = ageUnknown.checked;
+      if (ageUnknown.checked) age.value = "";
+    });
+    ageUnknownWrap.appendChild(ageUnknown);
+    ageUnknownWrap.appendChild(document.createTextNode(" Не помню возраст"));
+    row.appendChild(ageUnknownWrap);
     const cSel = document.createElement("select");
     cSel.className = "mh-life-select mh-life-tbi-circ";
     [
@@ -2932,7 +3031,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
       reflowTbi((st) => {
         const arr = Array.isArray(st.tbiWithLossList) ? st.tbiWithLossList : [];
         arr.splice(idx, 1);
-        st.tbiWithLossList = arr.length ? arr : [{ age: "", circumstance: "", lossDuration: "", exam: "" }];
+        st.tbiWithLossList = arr.length ? arr : [{ age: "", ageUnknown: false, circumstance: "", lossDuration: "", exam: "" }];
       });
     });
     row.appendChild(del);
@@ -2945,7 +3044,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   tbiAdd.addEventListener("click", () => {
     reflowTbi((st) => {
       const arr = Array.isArray(st.tbiWithLossList) ? st.tbiWithLossList : [];
-      arr.push({ age: "", circumstance: "", lossDuration: "", exam: "" });
+      arr.push({ age: "", ageUnknown: false, circumstance: "", lossDuration: "", exam: "" });
       st.tbiWithLossList = arr;
     });
   });
@@ -2959,10 +3058,10 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   });
   contentEl.appendChild(fsB12);
 
-  const fsB13 = fieldset("Блок 13. Раздел 6. Эпилепсия");
+  const fsB13 = fieldset("Блок 10. Эпилепсия");
   const q131 = document.createElement("p");
   q131.className = "mh-life-edu-title";
-  q131.textContent = "Вопрос 6.1. Установлен ли диагноз «эпилепсия» или «судорожное расстройство»?";
+  q131.textContent = "Вопрос 1. Установлен ли диагноз «эпилепсия» или «судорожное расстройство»?";
   fsB13.appendChild(q131);
   fsB13.appendChild(radioRow("mh-life-epi-status", "yes", "Да", state.epilepsyStatus === "yes"));
   fsB13.appendChild(radioRow("mh-life-epi-status", "no", "Нет", state.epilepsyStatus === "no"));
@@ -3022,10 +3121,10 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   });
   contentEl.appendChild(fsB13);
 
-  const fsB14 = fieldset("Блок 14. Раздел 7. Хронические заболевания");
+  const fsB14 = fieldset("Блок 11. Хронические заболевания");
   const q141 = document.createElement("p");
   q141.className = "mh-life-edu-title";
-  q141.textContent = "Вопрос 7.1. Есть ли хронические заболевания, требующие регулярного наблюдения?";
+  q141.textContent = "Вопрос 1. Есть ли хронические заболевания, требующие регулярного наблюдения?";
   fsB14.appendChild(q141);
   fsB14.appendChild(radioRow("mh-life-chronic-had", "yes", "Да", state.chronicHad === "yes"));
   fsB14.appendChild(radioRow("mh-life-chronic-had", "no", "Нет", state.chronicHad === "no"));
@@ -3066,10 +3165,10 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   });
   contentEl.appendChild(fsB14);
 
-  const fsB15 = fieldset("Блок 15. Раздел 8. Аллергические реакции");
+  const fsB15 = fieldset("Блок 12. Аллергические реакции");
   const q151 = document.createElement("p");
   q151.className = "mh-life-edu-title";
-  q151.textContent = "Вопрос 8.1. Были ли аллергические реакции?";
+  q151.textContent = "Вопрос 1. Были ли аллергические реакции?";
   fsB15.appendChild(q151);
   fsB15.appendChild(radioRow("mh-life-allergy-had", "yes", "Да", state.allergyHad === "yes"));
   fsB15.appendChild(radioRow("mh-life-allergy-had", "no", "Нет", state.allergyHad === "no"));
@@ -3140,10 +3239,10 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   });
   contentEl.appendChild(fsB15);
 
-  const fsB16 = fieldset("Блок 16. Раздел 9. Курение");
+  const fsB16 = fieldset("Блок 13. Курение, алкоголь, ПАВ");
   const q91 = document.createElement("p");
   q91.className = "mh-life-edu-title";
-  q91.textContent = "Вопрос 9.1. Курите ли Вы?";
+  q91.textContent = "Вопрос 1. Курите ли Вы?";
   fsB16.appendChild(q91);
   fsB16.appendChild(radioRow("mh-life-smoking", "no", "Нет", state.smokingStatus === "no"));
   fsB16.appendChild(radioRow("mh-life-smoking", "past", uiSmokingPast, state.smokingStatus === "past"));
@@ -3208,16 +3307,13 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
       }
     });
   });
-  contentEl.appendChild(fsB16);
-
-  const fsB17 = fieldset("Блок 17. Раздел 10. Употребление алкоголя");
   const q171 = document.createElement("p");
   q171.className = "mh-life-edu-title";
-  q171.textContent = "Вопрос 10.1. Употребляете ли Вы алкогольные напитки?";
-  fsB17.appendChild(q171);
-  fsB17.appendChild(radioRow("mh-life-alcohol", "none", "Нет (никогда)", state.alcoholStatus === "none"));
-  fsB17.appendChild(radioRow("mh-life-alcohol", "rare", "Редко (1–2 раза в месяц и реже)", state.alcoholStatus === "rare"));
-  fsB17.appendChild(radioRow("mh-life-alcohol", "regular", "Регулярно (1–2 раза в неделю и чаще)", state.alcoholStatus === "regular"));
+  q171.textContent = "Вопрос 2. Употребляете ли Вы алкогольные напитки?";
+  fsB16.appendChild(q171);
+  fsB16.appendChild(radioRow("mh-life-alcohol", "none", "Нет (никогда)", state.alcoholStatus === "none"));
+  fsB16.appendChild(radioRow("mh-life-alcohol", "rare", "Редко (1–2 раза в месяц и реже)", state.alcoholStatus === "rare"));
+  fsB16.appendChild(radioRow("mh-life-alcohol", "regular", "Регулярно (1–2 раза в неделю и чаще)", state.alcoholStatus === "regular"));
   const alcoholRare = document.createElement("div");
   alcoholRare.className = "mh-life-early-sub";
   alcoholRare.hidden = state.alcoholStatus !== "rare";
@@ -3235,7 +3331,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   arAmt.placeholder = "Примерное количество за раз";
   arAmt.value = String(state.alcoholRareAmount ?? "");
   alcoholRare.appendChild(arAmt);
-  fsB17.appendChild(alcoholRare);
+  fsB16.appendChild(alcoholRare);
   const alcoholReg = document.createElement("div");
   alcoholReg.className = "mh-life-early-sub";
   alcoholReg.hidden = state.alcoholStatus !== "regular";
@@ -3258,10 +3354,10 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   alcoholReg.appendChild(mkCheck("mh-life-alcohol-conseq-conflicts", "Конфликты из-за алкоголя", state.alcoholRegularConsequencesConflicts));
   alcoholReg.appendChild(mkCheck("mh-life-alcohol-conseq-law", "Проблемы с законом", state.alcoholRegularConsequencesLaw));
   alcoholReg.appendChild(mkCheck("mh-life-alcohol-conseq-narc", "Обращение к наркологу", state.alcoholRegularConsequencesNarcologist));
-  fsB17.appendChild(alcoholReg);
-  fsB17.querySelectorAll('input[name="mh-life-alcohol"]').forEach((el) => {
+  fsB16.appendChild(alcoholReg);
+  fsB16.querySelectorAll('input[name="mh-life-alcohol"]').forEach((el) => {
     el.addEventListener("change", () => {
-      const sel = fsB17.querySelector('input[name="mh-life-alcohol"]:checked');
+      const sel = fsB16.querySelector('input[name="mh-life-alcohol"]:checked');
       const v = sel instanceof HTMLInputElement ? sel.value : "";
       alcoholRare.hidden = v !== "rare";
       alcoholReg.hidden = v !== "regular";
@@ -3276,15 +3372,12 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
       }
     });
   });
-  contentEl.appendChild(fsB17);
-
-  const fsB18 = fieldset("Блок 18. Раздел 11. Психоактивные вещества (ПАВ)");
   const q111 = document.createElement("p");
   q111.className = "mh-life-edu-title";
-  q111.textContent = "Вопрос 11.1. Употребляли ли Вы когда-либо ПАВ?";
-  fsB18.appendChild(q111);
-  fsB18.appendChild(radioRow("mh-life-pav-had", "yes", "Да", state.pavHad === "yes"));
-  fsB18.appendChild(radioRow("mh-life-pav-had", "no", "Нет", state.pavHad === "no"));
+  q111.textContent = "Вопрос 3. Употребляли ли Вы когда-либо ПАВ?";
+  fsB16.appendChild(q111);
+  fsB16.appendChild(radioRow("mh-life-pav-had", "yes", "Да", state.pavHad === "yes"));
+  fsB16.appendChild(radioRow("mh-life-pav-had", "no", "Нет", state.pavHad === "no"));
   const pavWrap = document.createElement("div");
   pavWrap.className = "mh-life-early-sub";
   pavWrap.hidden = state.pavHad !== "yes";
@@ -3372,14 +3465,14 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
     });
   });
   pavWrap.appendChild(pavAdd);
-  fsB18.appendChild(pavWrap);
-  fsB18.querySelectorAll('input[name="mh-life-pav-had"]').forEach((el) => {
+  fsB16.appendChild(pavWrap);
+  fsB16.querySelectorAll('input[name="mh-life-pav-had"]').forEach((el) => {
     el.addEventListener("change", () => {
-      const sel = fsB18.querySelector('input[name="mh-life-pav-had"]:checked');
+      const sel = fsB16.querySelector('input[name="mh-life-pav-had"]:checked');
       pavWrap.hidden = !(sel instanceof HTMLInputElement && sel.value === "yes");
     });
   });
-  contentEl.appendChild(fsB18);
+  contentEl.appendChild(fsB16);
 
   contentEl.querySelectorAll('input[name="mh-life-heredity"]').forEach((el) => {
     el.addEventListener("change", () => syncYesBlock());
@@ -3568,7 +3661,9 @@ function radioRowStatic(name, value, label, checked) {
 /** @param {HTMLElement} root @returns {ChildhoodVisit[]} */
 function readChildhoodVisitsFromDom(root) {
   const out = /** @type {ChildhoodVisit[]} */ ([]);
-  root.querySelectorAll(".mh-life-childhood-visit").forEach((visitRow) => {
+  const visitsRoot = root.querySelector("#mh-life-childhood-visits-list");
+  if (!(visitsRoot instanceof HTMLElement)) return out;
+  visitsRoot.querySelectorAll(".mh-life-childhood-visit").forEach((visitRow) => {
     const specSel = visitRow.querySelector(".mh-life-ch-visit-specialist");
     const specialist =
       specSel instanceof HTMLSelectElement && CHILDHOOD_SPECIALIST_CODES.has(specSel.value) ? specSel.value : "neuro";
@@ -3659,6 +3754,11 @@ export function readLifeStructuredFromDom(contentEl, answers) {
     s.childhoodVisits = [];
   } else {
     s.childhoodVisits = normalizeChildhoodVisits(prev.childhoodVisits);
+  }
+  if (s.childhoodSpecialists === "yes") {
+    s.childhoodVisitsCloseDraft = prev.childhoodVisitsCloseDraft === true;
+  } else {
+    s.childhoodVisitsCloseDraft = false;
   }
 
   s.schoolStartAge = valOf(contentEl, "#mh-life-school-age");
@@ -3785,9 +3885,11 @@ export function readLifeStructuredFromDom(contentEl, answers) {
       const name = el.value.trim();
       const ageEl = contentEl.querySelectorAll(".mh-life-op-age")[idx];
       const age = ageEl instanceof HTMLInputElement ? ageEl.value.trim() : "";
+      const ageUnknownEl = contentEl.querySelectorAll(".mh-life-op-age-unknown")[idx];
+      const ageUnknown = ageUnknownEl instanceof HTMLInputElement ? ageUnknownEl.checked : false;
       const anEl = contentEl.querySelector(`input[name="mh-life-op-an-${idx}"]:checked`);
       const anesthesia = anEl instanceof HTMLInputElement ? anEl.value : "";
-      ops.push({ name, age, anesthesia });
+      ops.push({ name, age: ageUnknown ? "" : age, ageUnknown, anesthesia });
     });
     s.operationsList = ops;
   } else s.operationsList = [];
@@ -3800,9 +3902,11 @@ export function readLifeStructuredFromDom(contentEl, answers) {
     contentEl.querySelectorAll(".mh-life-sync-age").forEach((el, idx) => {
       if (!(el instanceof HTMLInputElement)) return;
       const age = el.value.trim();
+      const ageUnknownEl = contentEl.querySelectorAll(".mh-life-sync-age-unknown")[idx];
+      const ageUnknown = ageUnknownEl instanceof HTMLInputElement ? ageUnknownEl.checked : false;
       const causeEl = contentEl.querySelectorAll(".mh-life-sync-cause")[idx];
       const cause = causeEl instanceof HTMLInputElement ? causeEl.value.trim() : "";
-      arr.push({ age, cause });
+      arr.push({ age: ageUnknown ? "" : age, ageUnknown, cause });
     });
     s.syncopeNoTbiList = arr;
   } else s.syncopeNoTbiList = [];
@@ -3815,11 +3919,14 @@ export function readLifeStructuredFromDom(contentEl, answers) {
     contentEl.querySelectorAll(".mh-life-tbi-age").forEach((el, idx) => {
       if (!(el instanceof HTMLInputElement)) return;
       const age = el.value.trim();
+      const ageUnknownEl = contentEl.querySelectorAll(".mh-life-tbi-age-unknown")[idx];
+      const ageUnknown = ageUnknownEl instanceof HTMLInputElement ? ageUnknownEl.checked : false;
       const cEl = contentEl.querySelectorAll(".mh-life-tbi-circ")[idx];
       const dEl = contentEl.querySelectorAll(".mh-life-tbi-dur")[idx];
       const eEl = contentEl.querySelectorAll(".mh-life-tbi-exam")[idx];
       arr.push({
-        age,
+        age: ageUnknown ? "" : age,
+        ageUnknown,
         circumstance: cEl instanceof HTMLSelectElement ? cEl.value : "",
         lossDuration: dEl instanceof HTMLSelectElement ? dEl.value : "",
         exam: eEl instanceof HTMLSelectElement ? eEl.value : "",
