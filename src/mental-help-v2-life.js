@@ -1176,6 +1176,15 @@ function section10WordLines(state) {
 
 /** @param {Record<string, unknown>} state @param {"male" | "female" | null} gender */
 function section11WordLines(state, gender) {
+  const formatPavLastUse = (v) => {
+    const raw = String(v ?? "").trim();
+    if (!raw) return "";
+    const ym = raw.match(/^(\d{4})-(\d{2})$/);
+    if (ym) return `${ym[2]}.${ym[1]}`;
+    const my = raw.match(/^(\d{2})\.(\d{4})$/);
+    if (my) return `${my[1]}.${my[2]}`;
+    return raw;
+  };
   if (state.pavHad === "no") return ["Употребление ПАВ: Употребление ПАВ отрицает."];
   if (state.pavHad !== "yes") return [];
   const groupsRaw = Array.isArray(state.pavGroups) ? state.pavGroups : [];
@@ -1188,7 +1197,7 @@ function section11WordLines(state, gender) {
   const details = [];
   const exp = String(state.pavExperience ?? "").trim();
   if (exp) details.push(`стаж: ${exp}`);
-  const last = String(state.pavLastUse ?? "").trim();
+  const last = formatPavLastUse(state.pavLastUse);
   if (last) details.push(`последнее употребление: ${last}`);
   const freq = phrasePavFrequency(gender, state.pavFrequency);
   if (freq) details.push(`частота: ${freq}`);
@@ -3511,11 +3520,13 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   pavExp.value = String(state.pavExperience ?? "");
   pavExtraWrap.appendChild(pavExp);
   const pavLast = document.createElement("input");
-  pavLast.type = "text";
+  pavLast.type = "month";
   pavLast.id = "mh-life-pav-last";
   pavLast.className = "mh-life-text";
-  pavLast.placeholder = "Последнее употребление (месяц/год, например 03.2024)";
-  pavLast.value = String(state.pavLastUse ?? "");
+  const pavLastRaw = String(state.pavLastUse ?? "").trim();
+  const pavLastYm = pavLastRaw.match(/^(\d{4})-(\d{2})$/);
+  const pavLastMy = pavLastRaw.match(/^(\d{2})\.(\d{4})$/);
+  pavLast.value = pavLastYm ? pavLastRaw : pavLastMy ? `${pavLastMy[2]}-${pavLastMy[1]}` : "";
   pavExtraWrap.appendChild(pavLast);
   const pavFreq = document.createElement("select");
   pavFreq.id = "mh-life-pav-freq";
