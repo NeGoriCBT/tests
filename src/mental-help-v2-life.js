@@ -296,10 +296,14 @@ export function emptyLifeStructuredState() {
     army: "",
     eduSecDone: false,
     eduSecUndone: false,
+    eduSecNone: false,
     eduSecSpec: "",
     eduHiDone: false,
     eduHiUndone: false,
+    eduHiNone: false,
     eduHiSpec: "",
+    /** @type {"" | "yes" | "no"} */
+    eduAfterSchool: "",
     eduNoAfterSchool: false,
     /** @type {string[]} */
     section2Diseases: [],
@@ -1116,9 +1120,14 @@ function section9WordLines(state, gender) {
 
 /** @param {Record<string, unknown>} state */
 function section10WordLines(state) {
+  const normalizeAlcoholPreference = (v) => {
+    const t = String(v ?? "").trim().toLowerCase();
+    if (t === "все вышеперечисленное") return "все виды алкоголя";
+    return String(v ?? "").trim();
+  };
   if (state.alcoholStatus === "none") return ["Алкоголь: Алкоголь не употребляет."];
   if (state.alcoholStatus === "rare") {
-    const d = String(state.alcoholRareDrink ?? "").trim();
+    const d = normalizeAlcoholPreference(state.alcoholRareDrink);
     const a = String(state.alcoholRareAmount ?? "").trim();
     const bits = ["Употребляет редко (1–2 раза в месяц и реже)"];
     if (d) bits.push(`обычно ${d}`);
@@ -1126,7 +1135,7 @@ function section10WordLines(state) {
     return [`Алкоголь: ${bits.join(", ")}.`];
   }
   if (state.alcoholStatus !== "regular") return [];
-  const pref = String(state.alcoholRegularPref ?? "").trim();
+  const pref = normalizeAlcoholPreference(state.alcoholRegularPref);
   const amount = String(state.alcoholRegularAmount ?? "").trim();
   const bits = ["Употребляет регулярно (1–2 раза в неделю и чаще)"];
   if (pref) bits.push(`предпочитает ${pref}`);
@@ -1264,12 +1273,14 @@ export function formatLifeStructuredForWord(state, gender) {
     if (state.army === "not") lines.push("Армия: не служил.");
   }
 
-  if (state.eduNoAfterSchool) {
-    lines.push("После школы высшее и среднее образование не получал.");
+  if (state.eduAfterSchool === "no" || state.eduNoAfterSchool) {
+    lines.push("После школы образование не получал.");
   } else {
     const edu = [];
-    if (state.eduSecDone) edu.push(`среднее образование — законченное${state.eduSecSpec ? ` (${String(state.eduSecSpec).trim()})` : ""}`);
-    if (state.eduSecUndone) edu.push(`среднее образование — незаконченное${state.eduSecSpec ? ` (${String(state.eduSecSpec).trim()})` : ""}`);
+    if (state.eduSecNone) edu.push("среднее профессиональное образование — не получал");
+    if (state.eduSecDone) edu.push(`среднее профессиональное образование — законченное${state.eduSecSpec ? ` (${String(state.eduSecSpec).trim()})` : ""}`);
+    if (state.eduSecUndone) edu.push(`среднее профессиональное образование — незаконченное${state.eduSecSpec ? ` (${String(state.eduSecSpec).trim()})` : ""}`);
+    if (state.eduHiNone) edu.push("высшее образование — не получал");
     if (state.eduHiDone) edu.push(`высшее образование — законченное${state.eduHiSpec ? ` (${String(state.eduHiSpec).trim()})` : ""}`);
     if (state.eduHiUndone) edu.push(`высшее образование — незаконченное${state.eduHiSpec ? ` (${String(state.eduHiSpec).trim()})` : ""}`);
     if (edu.length) lines.push(`Образование: ${edu.join("; ")}.`);
@@ -2459,32 +2470,44 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   }
 
   const fsB8 = fieldset("Блок 5. Образование");
-  const eduNoneLab = mkCheck(
-    "mh-life-edu-none-after-school",
-    "Не получал образование после школы",
-    state.eduNoAfterSchool
+  const qEdu = document.createElement("p");
+  qEdu.className = "mh-life-edu-title";
+  qEdu.textContent = "Вопрос 1. Получали ли Вы образование после школы?";
+  fsB8.appendChild(qEdu);
+  const hasAnyEdu = Boolean(
+    state.eduSecDone || state.eduSecUndone || state.eduSecNone || state.eduHiDone || state.eduHiUndone || state.eduHiNone
   );
-  fsB8.appendChild(eduNoneLab);
+  const eduAfterSchoolVal =
+    state.eduAfterSchool === "yes" || state.eduAfterSchool === "no"
+      ? state.eduAfterSchool
+      : state.eduNoAfterSchool
+        ? "no"
+        : hasAnyEdu
+          ? "yes"
+          : "";
+  fsB8.appendChild(radioRow("mh-life-edu-after-school", "yes", "Да", eduAfterSchoolVal === "yes"));
+  fsB8.appendChild(radioRow("mh-life-edu-after-school", "no", "Нет", eduAfterSchoolVal === "no"));
   const eduWrap = document.createElement("div");
   eduWrap.id = "mh-life-edu-wrap";
-  eduWrap.hidden = Boolean(state.eduNoAfterSchool);
-  eduWrap.appendChild(subEdu("Среднее", "sec", state));
-  eduWrap.appendChild(subEdu("Высшее", "hi", state));
+  eduWrap.hidden = eduAfterSchoolVal !== "yes";
+  eduWrap.appendChild(subEdu("Среднее профессиональное образование", "sec", state));
+  eduWrap.appendChild(subEdu("Высшее образование", "hi", state));
   fsB8.appendChild(eduWrap);
-  const eduNoneCb = fsB8.querySelector("#mh-life-edu-none-after-school");
-  if (eduNoneCb instanceof HTMLInputElement) {
-    eduNoneCb.addEventListener("change", () => {
-      eduWrap.hidden = eduNoneCb.checked;
-      if (eduNoneCb.checked) {
-        eduWrap.querySelectorAll('input[type="radio"]').forEach((el) => {
-          if (el instanceof HTMLInputElement) el.checked = false;
+  fsB8.querySelectorAll('input[name="mh-life-edu-after-school"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const sel = fsB8.querySelector('input[name="mh-life-edu-after-school"]:checked');
+      const isYes = sel instanceof HTMLInputElement && sel.value === "yes";
+      eduWrap.hidden = !isYes;
+      if (!isYes) {
+        eduWrap.querySelectorAll('input[type="radio"]').forEach((r) => {
+          if (r instanceof HTMLInputElement) r.checked = false;
         });
-        eduWrap.querySelectorAll('input[type="text"]').forEach((el) => {
-          if (el instanceof HTMLInputElement) el.value = "";
+        eduWrap.querySelectorAll('input[type="text"]').forEach((t) => {
+          if (t instanceof HTMLInputElement) t.value = "";
         });
       }
     });
-  }
+  });
   contentEl.appendChild(fsB8);
 
   const fsB9 = fieldset("Блок 6. Перенесенные заболевания");
@@ -2499,7 +2522,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   };
   const hA = document.createElement("p");
   hA.className = "mh-life-hint";
-  hA.textContent = "Группа А (нейроинфекции и поражения ЦНС)";
+  hA.textContent = "Нейроинфекции и поражения ЦНС";
   fsB9.appendChild(hA);
   mkDisease("mh-life-s2-a-meningitis", "Менингит", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("a_meningitis"));
   mkDisease("mh-life-s2-a-encephalitis", "Энцефалит", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("a_encephalitis"));
@@ -2519,7 +2542,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
 
   const hB = document.createElement("p");
   hB.className = "mh-life-hint";
-  hB.textContent = "Группа Б (аутоиммунные и воспалительные)";
+  hB.textContent = "Аутоиммунные и воспалительные";
   fsB9.appendChild(hB);
   mkDisease(
     "mh-life-s2-b-sle",
@@ -2540,7 +2563,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
 
   const hV = document.createElement("p");
   hV.className = "mh-life-hint";
-  hV.textContent = "Группа В (эндокринные)";
+  hV.textContent = "Эндокринные";
   fsB9.appendChild(hV);
   mkDisease("mh-life-s2-v-hypo", "Гипотиреоз", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("v_hypothyroidism"));
   mkDisease(
@@ -2562,7 +2585,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
 
   const hG = document.createElement("p");
   hG.className = "mh-life-hint";
-  hG.textContent = "Группа Г (хронические инвалидизирующие)";
+  hG.textContent = "Хронические инвалидизирующие";
   fsB9.appendChild(hG);
   mkDisease("mh-life-s2-g-ra", "Ревматоидный артрит", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("g_ra"));
   mkDisease("mh-life-s2-g-fibro", "Фибромиалгия", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("g_fibromyalgia"));
@@ -2580,7 +2603,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
 
   const hD = document.createElement("p");
   hD.className = "mh-life-hint";
-  hD.textContent = "Группа Д (дефицитные состояния)";
+  hD.textContent = "Дефицитные состояния";
   fsB9.appendChild(hD);
   mkDisease(
     "mh-life-s2-d-b12",
@@ -2602,7 +2625,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
 
   const hE = document.createElement("p");
   hE.className = "mh-life-hint";
-  hE.textContent = "Группа Е (другое)";
+  hE.textContent = "Другое";
   fsB9.appendChild(hE);
   mkDisease("mh-life-s2-e-other", "Другое серьезное заболевание", Array.isArray(state.section2Diseases) && state.section2Diseases.includes("e_other"));
   const s2OtherRow = document.createElement("div");
@@ -3317,12 +3340,24 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   const alcoholRare = document.createElement("div");
   alcoholRare.className = "mh-life-early-sub";
   alcoholRare.hidden = state.alcoholStatus !== "rare";
-  const arDrink = document.createElement("input");
-  arDrink.type = "text";
+  const arDrink = document.createElement("select");
   arDrink.id = "mh-life-alcohol-rare-drink";
-  arDrink.className = "mh-life-text";
-  arDrink.placeholder = "Типичный напиток";
-  arDrink.value = String(state.alcoholRareDrink ?? "");
+  arDrink.className = "mh-life-select";
+  const rareDrinkValueRaw = String(state.alcoholRareDrink ?? "");
+  const rareDrinkValue = rareDrinkValueRaw.toLowerCase() === "все вышеперечисленное" ? "все виды алкоголя" : rareDrinkValueRaw;
+  [
+    ["", "Типичный напиток —"],
+    ["крепкие спиртные напитки (обычно 40–60% и выше)", "Крепкие спиртные напитки (обычно 40–60% и выше)"],
+    ["средней крепости (8–20%)", "Средней крепости (8–20%)"],
+    ["слабоалкогольные напитки (1–9%)", "Слабоалкогольные напитки (1–9%)"],
+    ["все виды алкоголя", "Все вышеперечисленное"],
+  ].forEach(([v, t]) => {
+    const o = document.createElement("option");
+    o.value = v;
+    o.textContent = t;
+    if (rareDrinkValue === v) o.selected = true;
+    arDrink.appendChild(o);
+  });
   alcoholRare.appendChild(arDrink);
   const arAmt = document.createElement("input");
   arAmt.type = "text";
@@ -3335,12 +3370,24 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   const alcoholReg = document.createElement("div");
   alcoholReg.className = "mh-life-early-sub";
   alcoholReg.hidden = state.alcoholStatus !== "regular";
-  const regPref = document.createElement("input");
-  regPref.type = "text";
+  const regPref = document.createElement("select");
   regPref.id = "mh-life-alcohol-reg-pref";
-  regPref.className = "mh-life-text";
-  regPref.placeholder = "Предпочтение (крепкое/некрепкое/смешанное)";
-  regPref.value = String(state.alcoholRegularPref ?? "");
+  regPref.className = "mh-life-select";
+  const regularPrefRaw = String(state.alcoholRegularPref ?? "");
+  const regularPrefValue = regularPrefRaw.toLowerCase() === "все вышеперечисленное" ? "все виды алкоголя" : regularPrefRaw;
+  [
+    ["", "Предпочтение —"],
+    ["крепкие спиртные напитки (обычно 40–60% и выше)", "Крепкие спиртные напитки (обычно 40–60% и выше)"],
+    ["средней крепости (8–20%)", "Средней крепости (8–20%)"],
+    ["слабоалкогольные напитки (1–9%)", "Слабоалкогольные напитки (1–9%)"],
+    ["все виды алкоголя", "Все вышеперечисленное"],
+  ].forEach(([v, t]) => {
+    const o = document.createElement("option");
+    o.value = v;
+    o.textContent = t;
+    if (regularPrefValue === v) o.selected = true;
+    regPref.appendChild(o);
+  });
   alcoholReg.appendChild(regPref);
   const regAmt = document.createElement("input");
   regAmt.type = "text";
@@ -3631,8 +3678,10 @@ function subEdu(title, prefix, state) {
   div.appendChild(p);
   const done = prefix === "sec" ? state.eduSecDone : state.eduHiDone;
   const undone = prefix === "sec" ? state.eduSecUndone : state.eduHiUndone;
+  const none = prefix === "sec" ? state.eduSecNone : state.eduHiNone;
   const spec = prefix === "sec" ? state.eduSecSpec : state.eduHiSpec;
   const name = `mh-life-edu-${prefix}`;
+  div.appendChild(radioRowStatic(name, "none", "Не получал", none));
   div.appendChild(radioRowStatic(name, "done", "Законченное", done));
   div.appendChild(radioRowStatic(name, "undone", "Незаконченное", undone));
   const sp = document.createElement("input");
@@ -3819,16 +3868,20 @@ export function readLifeStructuredFromDom(contentEl, answers) {
   const ar = contentEl.querySelector('input[name="mh-life-army"]:checked');
   s.army = ar && "value" in ar ? ar.value : "";
 
+  const eduAfter = contentEl.querySelector('input[name="mh-life-edu-after-school"]:checked');
+  s.eduAfterSchool = eduAfter && "value" in eduAfter ? eduAfter.value : "";
+  s.eduNoAfterSchool = s.eduAfterSchool === "no";
   const sec = contentEl.querySelector('input[name="mh-life-edu-sec"]:checked');
-  s.eduNoAfterSchool = chk(contentEl, "#mh-life-edu-none-after-school");
-  s.eduSecDone = !s.eduNoAfterSchool && sec?.value === "done";
-  s.eduSecUndone = !s.eduNoAfterSchool && sec?.value === "undone";
-  s.eduSecSpec = s.eduNoAfterSchool ? "" : valOf(contentEl, "#mh-life-edu-sec-spec");
+  s.eduSecNone = s.eduAfterSchool === "yes" && sec?.value === "none";
+  s.eduSecDone = s.eduAfterSchool === "yes" && sec?.value === "done";
+  s.eduSecUndone = s.eduAfterSchool === "yes" && sec?.value === "undone";
+  s.eduSecSpec = s.eduAfterSchool === "yes" && !s.eduSecNone ? valOf(contentEl, "#mh-life-edu-sec-spec") : "";
 
   const hi = contentEl.querySelector('input[name="mh-life-edu-hi"]:checked');
-  s.eduHiDone = !s.eduNoAfterSchool && hi?.value === "done";
-  s.eduHiUndone = !s.eduNoAfterSchool && hi?.value === "undone";
-  s.eduHiSpec = s.eduNoAfterSchool ? "" : valOf(contentEl, "#mh-life-edu-hi-spec");
+  s.eduHiNone = s.eduAfterSchool === "yes" && hi?.value === "none";
+  s.eduHiDone = s.eduAfterSchool === "yes" && hi?.value === "done";
+  s.eduHiUndone = s.eduAfterSchool === "yes" && hi?.value === "undone";
+  s.eduHiSpec = s.eduAfterSchool === "yes" && !s.eduHiNone ? valOf(contentEl, "#mh-life-edu-hi-spec") : "";
 
   /** @type {string[]} */
   const s2dis = [];
