@@ -1178,19 +1178,23 @@ function section10WordLines(state) {
 function section11WordLines(state, gender) {
   if (state.pavHad === "no") return ["Употребление ПАВ: Употребление ПАВ отрицает."];
   if (state.pavHad !== "yes") return [];
-  if (state.pavGroupsUnknown === true) return ["Употребление ПАВ: Группы ПАВ не знает."];
   const groupsRaw = Array.isArray(state.pavGroups) ? state.pavGroups : [];
   const groups = groupsRaw
     .filter((x) => typeof x === "string")
     .map((x) => x.trim())
     .filter(Boolean);
-  const items = groups.length
-    ? groups
-    : (Array.isArray(state.pavList) ? state.pavList : [])
-        .map((it) => String(it?.substance ?? "").trim())
-        .filter(Boolean);
-  if (!items.length) return [];
-  return [`Употребление ПАВ: ${listWithAnd(items)}.`];
+  const items = groups.length ? groups : [];
+  const head = state.pavGroupsUnknown === true ? "группы ПАВ не знает" : items.length ? listWithAnd(items) : "группы ПАВ не указаны";
+  const details = [];
+  const exp = String(state.pavExperience ?? "").trim();
+  if (exp) details.push(`стаж: ${exp}`);
+  const last = String(state.pavLastUse ?? "").trim();
+  if (last) details.push(`последнее употребление: ${last}`);
+  const freq = phrasePavFrequency(gender, state.pavFrequency);
+  if (freq) details.push(`частота: ${freq}`);
+  const treatment = phrasePavTreatment(gender, state.pavTreatment);
+  if (treatment) details.push(`лечение: ${treatment}`);
+  return [`Употребление ПАВ: ${head}${details.length ? ` (${details.join(", ")})` : ""}.`];
 }
 
 /** @param {"male" | "female" | null} gender */
@@ -3510,7 +3514,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   pavLast.type = "text";
   pavLast.id = "mh-life-pav-last";
   pavLast.className = "mh-life-text";
-  pavLast.placeholder = "Последнее употребление (в возрасте X лет / в YYYY году)";
+  pavLast.placeholder = "Последнее употребление (месяц/год, например 03.2024)";
   pavLast.value = String(state.pavLastUse ?? "");
   pavExtraWrap.appendChild(pavLast);
   const pavFreq = document.createElement("select");
