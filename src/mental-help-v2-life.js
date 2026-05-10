@@ -4002,15 +4002,28 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   pavExp.placeholder = "Стаж (например: 3 года)";
   pavExp.value = String(state.pavExperience ?? "");
   pavExtraWrap.appendChild(pavExp);
+  const pavLastLab = document.createElement("label");
+  pavLastLab.className = "mh-life-field-label";
+  pavLastLab.htmlFor = "mh-life-pav-last";
+  pavLastLab.textContent = "Последнее употребление (месяц и год)";
+  pavExtraWrap.appendChild(pavLastLab);
   const pavLast = document.createElement("input");
   pavLast.type = "month";
   pavLast.id = "mh-life-pav-last";
   pavLast.className = "mh-life-text";
+  pavLast.lang = "ru-RU";
+  pavLast.title =
+    "В Chrome и Edge обычно открывается календарь. В Safari или другом браузере введите месяц вручную в формате ГГГГ-ММ (например, 2024-03).";
   const pavLastRaw = String(state.pavLastUse ?? "").trim();
   const pavLastYm = pavLastRaw.match(/^(\d{4})-(\d{2})$/);
   const pavLastMy = pavLastRaw.match(/^(\d{2})\.(\d{4})$/);
   pavLast.value = pavLastYm ? pavLastRaw : pavLastMy ? `${pavLastMy[2]}-${pavLastMy[1]}` : "";
   pavExtraWrap.appendChild(pavLast);
+  const pavLastHint = document.createElement("p");
+  pavLastHint.className = "mh-life-hint";
+  pavLastHint.textContent =
+    "Если календарь не открывается: это ограничение браузера для поля «месяц». Введите дату вручную в формате ГГГГ-ММ или используйте Chrome / Edge на компьютере.";
+  pavExtraWrap.appendChild(pavLastHint);
   const pavFreq = document.createElement("select");
   pavFreq.id = "mh-life-pav-freq";
   pavFreq.className = "mh-life-select";
