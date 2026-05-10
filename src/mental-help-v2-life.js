@@ -293,6 +293,25 @@ export function emptyLifeStructuredState() {
     schoolStartAge: "",
     schoolPerformance: "",
     schoolClasses: null,
+    /** @type {"" | "yes" | "no"} */
+    socWorkNow: "",
+    socWorkPosition: "",
+    socWorkPastPositions: "",
+    /** @type {"" | "in_relationship" | "not_in_relationship" | "cohabitation" | "married" | "divorced" | "widowed"} */
+    socMarital: "",
+    /** Число браков (Б1а); строка из поля ввода */
+    socMarriagesCount: "",
+    /** @type {"" | "yes" | "no"} */
+    socChildren: "",
+    socChildrenTotal: "",
+    socChildrenCurrent: "",
+    socChildrenPrevious: "",
+    /** @type {"" | "alone" | "family" | "relatives" | "roommates" | "other"} */
+    socLivingWith: "",
+    socLivingOther: "",
+    /** @type {"" | "own_apt" | "house" | "rent" | "relatives_provided" | "service" | "other"} */
+    socHousing: "",
+    socHousingOther: "",
     army: "",
     eduSecDone: false,
     eduSecUndone: false,
@@ -507,7 +526,14 @@ export function parseLifeStructuredString(jsonStr) {
   }
   migrateLegacyHeredity(base, raw);
   migrateLegacyChildhood(base, raw);
+  migrateLegacySocial(base);
   return base;
+}
+
+/** Старые коды семейного статуса и проживания. */
+function migrateLegacySocial(base) {
+  if (base.socMarital === "never") base.socMarital = "not_in_relationship";
+  if (base.socLivingWith === "dorm") base.socLivingWith = "";
 }
 
 function pathologyLabel(code) {
@@ -543,12 +569,14 @@ function pathologyLabelForWord(code, who) {
   return pathologyLabel(code);
 }
 
-function schoolPerfLabel(v) {
+/** Успеваемость в тексте Word — согласование с полом (муж./жен.). При неизвестном поле — мужские формы. */
+function schoolPerfLabelForWord(gender, v) {
+  const fem = gender === "female";
   const m = {
-    excellent: "отличник",
-    good4and5: "ударник",
-    mostly4: "хорошист",
-    mostly3: "троечник",
+    excellent: fem ? "отличница" : "отличник",
+    good4and5: fem ? "ударница" : "ударник",
+    mostly4: fem ? "хорошистка" : "хорошист",
+    mostly3: fem ? "троечница" : "троечник",
     weakWithDebts: "слабо, были двойки и задолженности",
   };
   return m[v] ?? v;
@@ -602,7 +630,7 @@ function birthOrderPhraseForWord(state) {
   return `${childOrderInstrumentalWord(order)} ребенком`;
 }
 
-/** @param {Record<string, unknown>} state @param {"male" | "female" | null} gender */
+/** @param {Record<string, unknown>} state */
 function birth345LineForWord(state) {
   const bits = [];
   if (state.birthTerm === "term") bits.push("Роды в срок");
@@ -775,8 +803,31 @@ function phrasePavTreatment(gender, treatment) {
   return "";
 }
 
-/** @param {Record<string, unknown>} state */
-function block3WordLines(state) {
+/** «Не получал» / «не получала» — фразы про образование после школы. */
+/** @param {"male" | "female" | null} gender */
+function phraseEduNotReceivedPast(gender) {
+  if (gender === "female") return "не получала";
+  if (gender === "male") return "не получал";
+  return "не получал(а)";
+}
+
+/** Подписи пункта успеваемости в форме (школа), по полу. */
+/** @param {"male" | "female" | null} gender @param {string} v */
+function schoolPerfUiOptionLabel(gender, v) {
+  const fem = gender === "female";
+  const neu = gender !== "male" && gender !== "female";
+  const m = {
+    excellent: fem ? "Отличница (почти одни пятёрки)" : neu ? "Отличник/отличница (почти одни пятёрки)" : "Отличник (почти одни пятёрки)",
+    good4and5: fem ? "Ударница (одни четвёрки и пятёрки)" : neu ? "Ударник/ударница (одни четвёрки и пятёрки)" : "Ударник (одни четвёрки и пятёрки)",
+    mostly4: fem ? "Хорошистка (преимущественно четвёрки с редкими тройками)" : neu ? "Хорошист/хорошистка (преимущественно четвёрки с редкими тройками)" : "Хорошист (преимущественно четвёрки с редкими тройками)",
+    mostly3: fem ? "Троечница (преимущественно тройки)" : neu ? "Троечник/троечница (преимущественно тройки)" : "Троечник (преимущественно тройки)",
+    weakWithDebts: "Были двойки и академические задолженности",
+  };
+  return m[v] ?? v;
+}
+
+/** @param {Record<string, unknown>} state @param {"male" | "female" | null} gender */
+function block3WordLines(state, gender) {
   const lines = [];
 
   if (state.devFirstYear === "timely") lines.push("Психомоторное развитие в первый год жизни своевременное.");
@@ -813,23 +864,32 @@ function block3WordLines(state) {
     }
   }
 
+  const kdgVisit =
+    gender === "female" ? "посещала" : gender === "male" ? "посещал" : "посещал(а)";
+  const kdgVisitNeg =
+    gender === "female" ? "не посещала" : gender === "male" ? "не посещал" : "не посещал(а)";
+  const kdgAdaptEasy =
+    gender === "female" ? "адаптировалась" : gender === "male" ? "адаптировался" : "адаптировался(ась)";
+  const raisedHome =
+    gender === "female" ? "воспитывалась" : gender === "male" ? "воспитывался" : "воспитывался(ась)";
+
   if (state.kindergartenAttend === "yes") {
     if (state.kindergartenAdapt === "easy") {
-      lines.push("Детский сад посещал, адаптировался без особенностей.");
+      lines.push(`Детский сад ${kdgVisit}, ${kdgAdaptEasy} без особенностей.`);
     } else if (state.kindergartenAdapt === "difficult") {
       const d = String(state.kindergartenAdaptDetails ?? "").trim();
       lines.push(
         d
-          ? `Детский сад посещал, отмечались трудности адаптации (со слов: "${d}").`
-          : "Детский сад посещал, отмечались трудности адаптации."
+          ? `Детский сад ${kdgVisit}, отмечались трудности адаптации (со слов: "${d}").`
+          : `Детский сад ${kdgVisit}, отмечались трудности адаптации.`
       );
     } else if (state.kindergartenAdapt === "unknown") {
-      lines.push("Детский сад посещал, сведения об адаптации отсутствуют.");
+      lines.push(`Детский сад ${kdgVisit}, сведения об адаптации отсутствуют.`);
     } else {
-      lines.push("Детский сад посещал.");
+      lines.push(`Детский сад ${kdgVisit}.`);
     }
   } else if (state.kindergartenAttend === "no") {
-    lines.push("Детский сад не посещал, воспитывался дома.");
+    lines.push(`Детский сад ${kdgVisitNeg}, ${raisedHome} дома.`);
   } else if (state.kindergartenAttend === "unknown") {
     lines.push("Данные о посещении детского сада отсутствуют.");
   }
@@ -908,7 +968,7 @@ function block6WordLines(state, gender) {
   }
   if (state.schoolAdaptation === "unknown") lines.push("Проблем адаптации не помнит.");
 
-  const perf = schoolPerfLabel(String(state.schoolPerformance ?? ""));
+  const perf = schoolPerfLabelForWord(gender, String(state.schoolPerformance ?? ""));
   const studiedAtSchool =
     gender === "male" ? "Учился" : gender === "female" ? "Училась" : "Учился(лась)";
   if (state.schoolPerformance) {
@@ -941,6 +1001,124 @@ function block6WordLines(state, gender) {
     const cl = state.schoolClasses;
     if (cl != null && cl >= 1 && cl <= 11) lines.push(phraseFinishedClasses(gender, cl));
   }
+  return lines;
+}
+
+/** Склонение «N раз / раза» для целого неотрицательного числа. */
+function pluralTimesRu(n) {
+  const abs = Math.floor(Number(n));
+  if (!Number.isFinite(abs) || abs < 0) return "раз";
+  const mod10 = abs % 10;
+  const mod100 = abs % 100;
+  if (mod100 >= 11 && mod100 <= 14) return "раз";
+  if (mod10 === 1) return "раз";
+  if (mod10 >= 2 && mod10 <= 4) return "раза";
+  return "раз";
+}
+
+/** @param {"male" | "female" | null} gender */
+function maritalWidowPhraseForWord(gender) {
+  if (gender === "female") return "Вдова.";
+  if (gender === "male") return "Вдовец.";
+  return "Вдовец/вдова.";
+}
+
+/** @param {"male" | "female" | null} gender */
+function marriagesCountPhraseForWord(gender, n) {
+  const verb =
+    gender === "female" ? "Состояла" : gender === "male" ? "Состоял" : "Состоял(а)";
+  return `${verb} в зарегистрированном браке ${n} ${pluralTimesRu(n)}.`;
+}
+
+/**
+ * Социальный анамнез в Word: блоки 6–8 (труд, семья, жильё).
+ * @param {Record<string, unknown>} state
+ * @param {"male" | "female" | null} gender
+ */
+function socialAnamnesisWordLines(state, gender) {
+  const lines = [];
+
+  const workParts = [];
+  if (state.socWorkNow === "yes") {
+    let w = "Работает в настоящее время.";
+    const pos = String(state.socWorkPosition ?? "").trim();
+    if (pos) w += ` Должность: ${pos}.`;
+    workParts.push(w);
+  } else if (state.socWorkNow === "no") {
+    workParts.push("В настоящее время не работает.");
+  }
+  const pastPos = String(state.socWorkPastPositions ?? "").trim();
+  if (pastPos) workParts.push(`Основные должности за последние 5 лет/за всю жизнь: ${pastPos}.`);
+  if (workParts.length) lines.push(workParts.join(" "));
+
+  const mar = String(state.socMarital ?? "");
+  /** @type {string[]} */
+  const familyParts = [];
+  if (mar === "in_relationship") familyParts.push("Состоит в отношениях.");
+  else if (mar === "not_in_relationship") familyParts.push("В отношениях не состоит.");
+  else if (mar === "cohabitation") familyParts.push("Состоит в незарегистрированном браке (сожительство).");
+  else if (mar === "married") familyParts.push("Состоит в зарегистрированном браке.");
+  else if (mar === "divorced") familyParts.push("В разводе.");
+  else if (mar === "widowed") familyParts.push(maritalWidowPhraseForWord(gender));
+
+  if (mar === "divorced" || mar === "widowed") {
+    const rawMc = String(state.socMarriagesCount ?? "").trim();
+    const mc = rawMc === "" ? NaN : Number.parseInt(rawMc, 10);
+    if (Number.isFinite(mc) && mc > 0) familyParts.push(marriagesCountPhraseForWord(gender, mc));
+  }
+
+  if (state.socChildren === "no") familyParts.push("Детей нет.");
+  else if (state.socChildren === "yes") {
+    const tRaw = String(state.socChildrenTotal ?? "").trim();
+    const cRaw = String(state.socChildrenCurrent ?? "").trim();
+    const pRaw = String(state.socChildrenPrevious ?? "").trim();
+    const total = tRaw === "" ? NaN : Number.parseInt(tRaw, 10);
+    const cur = cRaw === "" ? NaN : Number.parseInt(cRaw, 10);
+    const prev = pRaw === "" ? NaN : Number.parseInt(pRaw, 10);
+    const bits = [];
+    if (Number.isFinite(total) && total >= 0) bits.push(`Всего детей: ${total}`);
+    if (Number.isFinite(cur) && cur > 0) bits.push(`из них от текущего/последнего брака: ${cur}`);
+    if (Number.isFinite(prev) && prev > 0) bits.push(`из них от предыдущих браков/отношений: ${prev}`);
+    if (bits.length) familyParts.push(`${bits.join(", ")}.`);
+  }
+
+  if (familyParts.length) lines.push(familyParts.join(" "));
+
+  const liv = String(state.socLivingWith ?? "");
+  /** @type {string} */
+  let livingBit = "";
+  if (liv === "alone") {
+    livingBit =
+      gender === "female"
+        ? "Проживает одна"
+        : gender === "male"
+          ? "Проживает один"
+          : "Проживает один(на)";
+  } else if (liv === "family") livingBit = "Проживает с семьёй";
+  else if (liv === "relatives") livingBit = "Проживает с родственниками";
+  else if (liv === "roommates") livingBit = "Проживает с соседями (не родственниками)";
+  else if (liv === "other") {
+    const o = String(state.socLivingOther ?? "").trim();
+    if (o) livingBit = `Проживает: ${o}`;
+  }
+
+  const hou = String(state.socHousing ?? "");
+  /** @type {string} */
+  let housingBit = "";
+  if (hou === "own_apt") housingBit = "жильё: собственная квартира";
+  else if (hou === "house") housingBit = "жильё: частный дом в собственности";
+  else if (hou === "rent") housingBit = "жильё: арендованное";
+  else if (hou === "relatives_provided") housingBit = "жильё: предоставлено родственниками";
+  else if (hou === "service") housingBit = "жильё: служебное";
+  else if (hou === "other") {
+    const o = String(state.socHousingOther ?? "").trim();
+    if (o) housingBit = `жильё: ${o}`;
+  }
+
+  if (livingBit && housingBit) lines.push(`${livingBit}, ${housingBit}.`);
+  else if (livingBit) lines.push(`${livingBit}.`);
+  else if (housingBit) lines.push(`${upperFirst(housingBit)}.`);
+
   return lines;
 }
 
@@ -1298,7 +1476,7 @@ export function formatLifeStructuredForWord(state, gender) {
   }
   if (state.birthTrauma === "unknown") lines.push("Объективных данных о наличии родовой травмы нет.");
 
-  lines.push(...block3WordLines(state));
+  lines.push(...block3WordLines(state, gender));
 
   const chLine = formatChildhoodSpecialistsLineForWord(state, gender);
   if (chLine) lines.push(chLine);
@@ -1310,17 +1488,25 @@ export function formatLifeStructuredForWord(state, gender) {
   }
 
   if (state.eduAfterSchool === "no" || state.eduNoAfterSchool) {
-    lines.push("После школы образование не получал.");
+    lines.push(
+      gender === "female"
+        ? "После школы образование не получала."
+        : gender === "male"
+          ? "После школы образование не получал."
+          : "После школы образование не получал(а)."
+    );
   } else {
     const edu = [];
-    if (state.eduSecNone) edu.push("среднее профессиональное образование — не получал");
+    const negr = phraseEduNotReceivedPast(gender);
+    if (state.eduSecNone) edu.push(`среднее профессиональное образование — ${negr}`);
     if (state.eduSecDone) edu.push(`среднее профессиональное образование — законченное${state.eduSecSpec ? ` (${String(state.eduSecSpec).trim()})` : ""}`);
     if (state.eduSecUndone) edu.push(`среднее профессиональное образование — незаконченное${state.eduSecSpec ? ` (${String(state.eduSecSpec).trim()})` : ""}`);
-    if (state.eduHiNone) edu.push("высшее образование — не получал");
+    if (state.eduHiNone) edu.push(`высшее образование — ${negr}`);
     if (state.eduHiDone) edu.push(`высшее образование — законченное${state.eduHiSpec ? ` (${String(state.eduHiSpec).trim()})` : ""}`);
     if (state.eduHiUndone) edu.push(`высшее образование — незаконченное${state.eduHiSpec ? ` (${String(state.eduHiSpec).trim()})` : ""}`);
     if (edu.length) lines.push(`Образование: ${edu.join("; ")}.`);
   }
+  lines.push(...socialAnamnesisWordLines(state, gender));
   lines.push(...section2WordLines(state));
   lines.push(...section3WordLines(state));
   lines.push(...section4WordLines(state));
@@ -1462,6 +1648,50 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   const uiSchoolFinishedNo =
     gender === "female" ? "Не окончила школу" : gender === "male" ? "Не окончил школу" : "Не окончил(а) школу";
   const uiSmokingPast = gender === "female" ? "Бросила" : gender === "male" ? "Бросил" : "Бросил(а)";
+  const uiSchoolHome =
+    gender === "female" ? "Обучалась на дому" : gender === "male" ? "Обучался на дому" : "Обучался(ась) на дому";
+  const uiPeerEasy =
+    gender === "female"
+      ? "Легко находила друзей"
+      : gender === "male"
+        ? "Легко находил друзей"
+        : "Легко находил(а) друзей";
+  const uiPeerOutcast =
+    gender === "female"
+      ? "Была изгоем / отвергаемой"
+      : gender === "male"
+        ? "Был изгоем / отвергаемым"
+        : "Был(а) изгоем / отвергаемым";
+  const uiPeerBullied =
+    gender === "female"
+      ? "Подвергалась буллингу (травле)"
+      : gender === "male"
+        ? "Подвергался буллингу (травле)"
+        : "Подвергался(ась) буллингу (травле)";
+  const uiPeerAggr =
+    gender === "female"
+      ? "Сама проявляла агрессию к другим"
+      : gender === "male"
+        ? "Сам проявлял агрессию к другим"
+        : "Сам(а) проявлял(а) агрессию к другим";
+  const uiTeacherFav =
+    gender === "female"
+      ? "Была любимицей"
+      : gender === "male"
+        ? "Был любимчиком"
+        : "Был(а) любимчиком / любимицей";
+  const uiTeacherCrit =
+    gender === "female"
+      ? "Была объектом критики / придирок"
+      : gender === "male"
+        ? "Был объектом критики / придирок"
+        : "Был(а) объектом критики / придирок";
+  const uiSchoolClassesRowPrefix =
+    gender === "female"
+      ? "Сколько классов окончила: "
+      : gender === "male"
+        ? "Сколько классов окончил: "
+        : "Сколько классов окончил(а): ";
 
   const fs0 = fieldset("");
   fs0.classList.add("mh-life-fieldset--plain");
@@ -1689,7 +1919,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
 
   const q2b = document.createElement("p");
   q2b.className = "mh-life-edu-title";
-  q2b.textContent = "Вопрос 2. Каким по счету ребенком вы родились?";
+  q2b.textContent = "Вопрос 2. Каким по счету ребенком Вы родились?";
   fsB2.appendChild(q2b);
   const ordRow = document.createElement("div");
   ordRow.className = "mh-life-row";
@@ -1977,7 +2207,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
 
   const q36 = document.createElement("p");
   q36.className = "mh-life-edu-title";
-  q36.textContent = "Вопрос 6. Наблюдались ли вы у специалистов в детстве?";
+  q36.textContent = "Вопрос 6. Наблюдались ли Вы у специалистов в детстве?";
   fsB3.appendChild(q36);
   fsB3.appendChild(radioRow("mh-life-childhood", "yes", "Да", state.childhoodSpecialists === "yes"));
   fsB3.appendChild(radioRow("mh-life-childhood", "no", "Нет", state.childhoodSpecialists === "no"));
@@ -2260,7 +2490,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
     });
   }
 
-  fsB6.appendChild(mkCheck("mh-life-school-type-home", "Обучался на дому", state.schoolTypeHome));
+  fsB6.appendChild(mkCheck("mh-life-school-type-home", uiSchoolHome, state.schoolTypeHome));
   const homeWrap = document.createElement("div");
   homeWrap.className = "mh-life-early-sub";
   homeWrap.hidden = !state.schoolTypeHome;
@@ -2414,11 +2644,11 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   perfSel.className = "mh-life-select";
   [
     ["", "—"],
-    ["excellent", "Отличник (почти одни пятёрки)"],
-    ["good4and5", "Ударник (одни четвёрки и пятёрки)"],
-    ["mostly4", "Хорошист (преимущественно четвёрки с редкими тройками)"],
-    ["mostly3", "Троечник (преимущественно тройки)"],
-    ["weakWithDebts", "Были двойки и академические задолженности"],
+    ["excellent", schoolPerfUiOptionLabel(gender, "excellent")],
+    ["good4and5", schoolPerfUiOptionLabel(gender, "good4and5")],
+    ["mostly4", schoolPerfUiOptionLabel(gender, "mostly4")],
+    ["mostly3", schoolPerfUiOptionLabel(gender, "mostly3")],
+    ["weakWithDebts", schoolPerfUiOptionLabel(gender, "weakWithDebts")],
   ].forEach(([v, t]) => {
     const o = document.createElement("option");
     o.value = v;
@@ -2436,14 +2666,14 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   p71.className = "mh-life-hint";
   p71.textContent = "7.1. С одноклассниками (можно выбрать несколько):";
   fsB6.appendChild(p71);
-  fsB6.appendChild(mkCheck("mh-life-peer-easy", "Легко находил друзей", state.schoolPeerEasyFriends));
+  fsB6.appendChild(mkCheck("mh-life-peer-easy", uiPeerEasy, state.schoolPeerEasyFriends));
   fsB6.appendChild(mkCheck("mh-life-peer-few", "Друзей было мало", state.schoolPeerFewFriends));
   fsB6.appendChild(
     mkCheck("mh-life-peer-diff", "Были трудности в общении", state.schoolPeerCommunicationDifficulties)
   );
-  fsB6.appendChild(mkCheck("mh-life-peer-outcast", "Был изгоем / отвергаемым", state.schoolPeerOutcast));
-  fsB6.appendChild(mkCheck("mh-life-peer-bullied", "Подвергался буллингу (травле)", state.schoolPeerBullied));
-  fsB6.appendChild(mkCheck("mh-life-peer-aggr", "Сам проявлял агрессию к другим", state.schoolPeerAggression));
+  fsB6.appendChild(mkCheck("mh-life-peer-outcast", uiPeerOutcast, state.schoolPeerOutcast));
+  fsB6.appendChild(mkCheck("mh-life-peer-bullied", uiPeerBullied, state.schoolPeerBullied));
+  fsB6.appendChild(mkCheck("mh-life-peer-aggr", uiPeerAggr, state.schoolPeerAggression));
   fsB6.appendChild(mkCheck("mh-life-peer-neutral", "Отношения нейтральные", state.schoolPeerNeutral));
   const p72 = document.createElement("p");
   p72.className = "mh-life-hint";
@@ -2456,10 +2686,8 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   fsB6.appendChild(
     mkCheck("mh-life-teacher-many-conf", "Конфликты с несколькими учителями", state.schoolTeacherManyConflicts)
   );
-  fsB6.appendChild(mkCheck("mh-life-teacher-fav", "Был любимчиком", state.schoolTeacherFavorite));
-  fsB6.appendChild(
-    mkCheck("mh-life-teacher-crit", "Был объектом критики / придирок", state.schoolTeacherCriticized)
-  );
+  fsB6.appendChild(mkCheck("mh-life-teacher-fav", uiTeacherFav, state.schoolTeacherFavorite));
+  fsB6.appendChild(mkCheck("mh-life-teacher-crit", uiTeacherCrit, state.schoolTeacherCriticized));
   fsB6.appendChild(mkCheck("mh-life-teacher-neutral", "Отношения нейтральные", state.schoolTeacherNeutral));
 
   const q68 = document.createElement("p");
@@ -2471,7 +2699,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   const rowCl = document.createElement("div");
   rowCl.className = "mh-life-row";
   rowCl.hidden = state.schoolFinished === "no";
-  rowCl.appendChild(document.createTextNode("Сколько классов окончил: "));
+  rowCl.appendChild(document.createTextNode(uiSchoolClassesRowPrefix));
   const clSel = document.createElement("select");
   clSel.id = "mh-life-school-classes";
   clSel.className = "mh-life-select";
@@ -2546,7 +2774,262 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   });
   contentEl.appendChild(fsB8);
 
-  const fsB9 = fieldset("Блок 6. Перенесенные заболевания");
+  const fsSocA = fieldset("Блок 6. Трудовая деятельность");
+  const qa1 = document.createElement("p");
+  qa1.className = "mh-life-edu-title";
+  qa1.textContent = "Вопрос А1. Работаете ли Вы в настоящее время?";
+  fsSocA.appendChild(qa1);
+  fsSocA.appendChild(radioRow("mh-life-soc-work-now", "yes", "Да", state.socWorkNow === "yes"));
+  fsSocA.appendChild(radioRow("mh-life-soc-work-now", "no", "Нет", state.socWorkNow === "no"));
+  const workPosWrap = document.createElement("div");
+  workPosWrap.id = "mh-life-soc-work-pos-wrap";
+  workPosWrap.className = "mh-life-custom-wrap";
+  const workPosLab = document.createElement("label");
+  workPosLab.className = "mh-life-field-label";
+  workPosLab.textContent = "Какая у Вас текущая должность?";
+  const workPosInp = document.createElement("input");
+  workPosInp.type = "text";
+  workPosInp.id = "mh-life-soc-work-position";
+  workPosInp.className = "mh-life-text";
+  workPosInp.value = String(state.socWorkPosition ?? "");
+  workPosLab.appendChild(workPosInp);
+  workPosWrap.appendChild(workPosLab);
+  fsSocA.appendChild(workPosWrap);
+  const qa2 = document.createElement("p");
+  qa2.className = "mh-life-edu-title";
+  qa2.textContent =
+    "Вопрос А2. Какие должности Вы занимали за последние 5 лет (или основные за всю жизнь)?";
+  fsSocA.appendChild(qa2);
+  const pastInp = document.createElement("input");
+  pastInp.type = "text";
+  pastInp.id = "mh-life-soc-work-past";
+  pastInp.className = "mh-life-text";
+  pastInp.value = String(state.socWorkPastPositions ?? "");
+  fsSocA.appendChild(pastInp);
+  workPosWrap.hidden = state.socWorkNow !== "yes";
+  fsSocA.querySelectorAll('input[name="mh-life-soc-work-now"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const y = fsSocA.querySelector('input[name="mh-life-soc-work-now"]:checked');
+      const isYes = y instanceof HTMLInputElement && y.value === "yes";
+      workPosWrap.hidden = !isYes;
+      if (!isYes && workPosInp instanceof HTMLInputElement) workPosInp.value = "";
+    });
+  });
+  contentEl.appendChild(fsSocA);
+
+  const fsSocB = fieldset("Блок 7. Семейное положение и отношения");
+  const qb1 = document.createElement("p");
+  qb1.className = "mh-life-edu-title";
+  qb1.textContent = "Вопрос Б1. Каков Ваш текущий семейный статус?";
+  fsSocB.appendChild(qb1);
+  fsSocB.appendChild(
+    radioRow("mh-life-soc-marital", "in_relationship", "Состою в отношениях", state.socMarital === "in_relationship")
+  );
+  fsSocB.appendChild(
+    radioRow(
+      "mh-life-soc-marital",
+      "not_in_relationship",
+      "В отношениях не состою",
+      state.socMarital === "not_in_relationship"
+    )
+  );
+  fsSocB.appendChild(
+    radioRow(
+      "mh-life-soc-marital",
+      "cohabitation",
+      "Сожительство (незарегистрированный брак, живём вместе)",
+      state.socMarital === "cohabitation"
+    )
+  );
+  fsSocB.appendChild(radioRow("mh-life-soc-marital", "married", "Зарегистрированный брак", state.socMarital === "married"));
+  fsSocB.appendChild(radioRow("mh-life-soc-marital", "divorced", "В разводе", state.socMarital === "divorced"));
+  fsSocB.appendChild(radioRow("mh-life-soc-marital", "widowed", "Вдовец/вдова", state.socMarital === "widowed"));
+
+  const b1aWrap = document.createElement("div");
+  b1aWrap.id = "mh-life-soc-b1a-wrap";
+  b1aWrap.className = "mh-life-custom-wrap";
+  const b1aLab = document.createElement("label");
+  b1aLab.className = "mh-life-field-label";
+  b1aLab.textContent = "Вопрос Б1а. Сколько всего раз Вы состояли в зарегистрированном браке?";
+  const b1aInp = document.createElement("input");
+  b1aInp.type = "number";
+  b1aInp.min = "0";
+  b1aInp.step = "1";
+  b1aInp.id = "mh-life-soc-marriages-count";
+  b1aInp.className = "mh-life-text";
+  const mcStored = String(state.socMarriagesCount ?? "").trim();
+  b1aInp.value = mcStored === "" ? "0" : mcStored;
+  b1aLab.appendChild(b1aInp);
+  b1aWrap.appendChild(b1aLab);
+  fsSocB.appendChild(b1aWrap);
+  b1aWrap.hidden = state.socMarital !== "divorced" && state.socMarital !== "widowed";
+
+  const qb2 = document.createElement("p");
+  qb2.className = "mh-life-edu-title";
+  qb2.textContent = "Вопрос Б2. Есть ли у Вас дети?";
+  fsSocB.appendChild(qb2);
+  fsSocB.appendChild(radioRow("mh-life-soc-children", "no", "Нет", state.socChildren === "no"));
+  fsSocB.appendChild(radioRow("mh-life-soc-children", "yes", "Да", state.socChildren === "yes"));
+
+  const socChildrenFieldsWrap = document.createElement("div");
+  socChildrenFieldsWrap.id = "mh-life-soc-children-wrap";
+  socChildrenFieldsWrap.className = "mh-life-custom-wrap";
+  const mkNumRow = (id, label, val) => {
+    const row = document.createElement("div");
+    row.className = "mh-life-row";
+    const lab = document.createElement("label");
+    lab.className = "mh-life-field-label";
+    lab.textContent = label;
+    const inp = document.createElement("input");
+    inp.type = "number";
+    inp.min = "0";
+    inp.step = "1";
+    inp.id = id;
+    inp.className = "mh-life-text";
+    inp.value = String(val ?? "");
+    lab.appendChild(inp);
+    row.appendChild(lab);
+    return row;
+  };
+  socChildrenFieldsWrap.appendChild(mkNumRow("mh-life-soc-children-total", "Общее количество детей", state.socChildrenTotal));
+  socChildrenFieldsWrap.appendChild(
+    mkNumRow("mh-life-soc-children-current", "Из них от текущего/последнего брака", state.socChildrenCurrent)
+  );
+  socChildrenFieldsWrap.appendChild(
+    mkNumRow("mh-life-soc-children-prev", "Из них от предыдущих браков/отношений", state.socChildrenPrevious)
+  );
+  fsSocB.appendChild(socChildrenFieldsWrap);
+  /* Поля счёта детей всегда видны; в Word учитываются только при ответе «Да» на Б2. */
+
+  fsSocB.querySelectorAll('input[name="mh-life-soc-marital"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const m = fsSocB.querySelector('input[name="mh-life-soc-marital"]:checked');
+      const v = m instanceof HTMLInputElement ? m.value : "";
+      b1aWrap.hidden = v !== "divorced" && v !== "widowed";
+      if (b1aWrap.hidden && b1aInp instanceof HTMLInputElement) b1aInp.value = "0";
+    });
+  });
+  fsSocB.querySelectorAll('input[name="mh-life-soc-children"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const c = fsSocB.querySelector('input[name="mh-life-soc-children"]:checked');
+      const yes = c instanceof HTMLInputElement && c.value === "yes";
+      if (!yes) {
+        socChildrenFieldsWrap.querySelectorAll('input[type="number"]').forEach((inp) => {
+          if (inp instanceof HTMLInputElement) inp.value = "";
+        });
+      }
+    });
+  });
+  contentEl.appendChild(fsSocB);
+
+  const fsSocV = fieldset("Блок 8. Жилищные условия");
+  const qv1 = document.createElement("p");
+  qv1.className = "mh-life-edu-title";
+  qv1.textContent = "Вопрос В1. С кем Вы проживаете в настоящее время?";
+  fsSocV.appendChild(qv1);
+  fsSocV.appendChild(radioRow("mh-life-soc-live", "alone", "Один/одна", state.socLivingWith === "alone"));
+  fsSocV.appendChild(
+    radioRow(
+      "mh-life-soc-live",
+      "family",
+      "С семьёй (супруг/супруга, дети, родители)",
+      state.socLivingWith === "family"
+    )
+  );
+  fsSocV.appendChild(
+    radioRow(
+      "mh-life-soc-live",
+      "relatives",
+      "С родственниками (не считая родителей/детей)",
+      state.socLivingWith === "relatives"
+    )
+  );
+  fsSocV.appendChild(
+    radioRow(
+      "mh-life-soc-live",
+      "roommates",
+      "С соседями по квартире/комнате (не родственники)",
+      state.socLivingWith === "roommates"
+    )
+  );
+  fsSocV.appendChild(radioRow("mh-life-soc-live", "other", "Другое", state.socLivingWith === "other"));
+  const liveOtherWrap = document.createElement("div");
+  liveOtherWrap.id = "mh-life-soc-live-other-wrap";
+  liveOtherWrap.className = "mh-life-custom-wrap";
+  const liveOtherLab = document.createElement("label");
+  liveOtherLab.className = "mh-life-field-label";
+  liveOtherLab.textContent = "Уточнение (с кем проживает)";
+  const liveOtherInp = document.createElement("input");
+  liveOtherInp.type = "text";
+  liveOtherInp.id = "mh-life-soc-live-other";
+  liveOtherInp.className = "mh-life-text";
+  liveOtherInp.value = String(state.socLivingOther ?? "");
+  liveOtherLab.appendChild(liveOtherInp);
+  liveOtherWrap.appendChild(liveOtherLab);
+  fsSocV.appendChild(liveOtherWrap);
+  liveOtherWrap.hidden = state.socLivingWith !== "other";
+
+  const qv2 = document.createElement("p");
+  qv2.className = "mh-life-edu-title";
+  qv2.textContent = "Вопрос В2. Каков тип Вашего жилья?";
+  fsSocV.appendChild(qv2);
+  fsSocV.appendChild(
+    radioRow(
+      "mh-life-soc-house",
+      "own_apt",
+      "Собственная квартира (в собственности или ипотека/залога нет)",
+      state.socHousing === "own_apt"
+    )
+  );
+  fsSocV.appendChild(radioRow("mh-life-soc-house", "house", "Частный дом (в собственности)", state.socHousing === "house"));
+  fsSocV.appendChild(
+    radioRow("mh-life-soc-house", "rent", "Арендую жильё (снимаю квартиру/комнату/дом)", state.socHousing === "rent")
+  );
+  fsSocV.appendChild(
+    radioRow(
+      "mh-life-soc-house",
+      "relatives_provided",
+      "Жильё предоставлено родственниками (без аренды)",
+      state.socHousing === "relatives_provided"
+    )
+  );
+  fsSocV.appendChild(radioRow("mh-life-soc-house", "service", "Служебное жильё", state.socHousing === "service"));
+  fsSocV.appendChild(radioRow("mh-life-soc-house", "other", "Другое", state.socHousing === "other"));
+  const houseOtherWrap = document.createElement("div");
+  houseOtherWrap.id = "mh-life-soc-house-other-wrap";
+  houseOtherWrap.className = "mh-life-custom-wrap";
+  const houseOtherLab = document.createElement("label");
+  houseOtherLab.className = "mh-life-field-label";
+  houseOtherLab.textContent = "Уточнение типа жилья";
+  const houseOtherInp = document.createElement("input");
+  houseOtherInp.type = "text";
+  houseOtherInp.id = "mh-life-soc-house-other";
+  houseOtherInp.className = "mh-life-text";
+  houseOtherInp.value = String(state.socHousingOther ?? "");
+  houseOtherLab.appendChild(houseOtherInp);
+  houseOtherWrap.appendChild(houseOtherLab);
+  fsSocV.appendChild(houseOtherWrap);
+  houseOtherWrap.hidden = state.socHousing !== "other";
+
+  fsSocV.querySelectorAll('input[name="mh-life-soc-live"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const x = fsSocV.querySelector('input[name="mh-life-soc-live"]:checked');
+      const v = x instanceof HTMLInputElement ? x.value : "";
+      liveOtherWrap.hidden = v !== "other";
+      if (v !== "other" && liveOtherInp instanceof HTMLInputElement) liveOtherInp.value = "";
+    });
+  });
+  fsSocV.querySelectorAll('input[name="mh-life-soc-house"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const x = fsSocV.querySelector('input[name="mh-life-soc-house"]:checked');
+      const v = x instanceof HTMLInputElement ? x.value : "";
+      houseOtherWrap.hidden = v !== "other";
+      if (v !== "other" && houseOtherInp instanceof HTMLInputElement) houseOtherInp.value = "";
+    });
+  });
+  contentEl.appendChild(fsSocV);
+
+  const fsB9 = fieldset("Блок 9. Перенесенные заболевания");
   const q21 = document.createElement("p");
   q21.className = "mh-life-edu-title";
   q21.textContent = "Вопрос 1. Переносили ли Вы какие-либо из перечисленных заболеваний или состояний?";
@@ -2788,7 +3271,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   updateS2PsychVisibility();
   contentEl.appendChild(fsB9);
 
-  const fsB10 = fieldset("Блок 7. Операции");
+  const fsB10 = fieldset("Блок 10. Операции");
   const q101 = document.createElement("p");
   q101.className = "mh-life-edu-title";
   q101.textContent = "Вопрос 1. Были ли у Вас хирургические операции?";
@@ -2890,7 +3373,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   });
   contentEl.appendChild(fsB10);
 
-  const fsB11 = fieldset("Блок 8. Потери сознания (без ЧМТ)");
+  const fsB11 = fieldset("Блок 11. Потери сознания (без ЧМТ)");
   const q41 = document.createElement("p");
   q41.className = "mh-life-edu-title";
   q41.textContent = "Вопрос 1. Были ли потери сознания (обмороки) без ЧМТ?";
@@ -2982,7 +3465,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   });
   contentEl.appendChild(fsB11);
 
-  const fsB12 = fieldset("Блок 9. ЧМТ с потерей сознания");
+  const fsB12 = fieldset("Блок 12. ЧМТ с потерей сознания");
   const q51 = document.createElement("p");
   q51.className = "mh-life-edu-title";
   q51.textContent = "Вопрос 1. Были ли ЧМТ, сопровождавшиеся потерей сознания?";
@@ -3117,7 +3600,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   });
   contentEl.appendChild(fsB12);
 
-  const fsB13 = fieldset("Блок 10. Эпилепсия");
+  const fsB13 = fieldset("Блок 13. Эпилепсия");
   const q131 = document.createElement("p");
   q131.className = "mh-life-edu-title";
   q131.textContent = "Вопрос 1. Установлен ли диагноз «эпилепсия» или «судорожное расстройство»?";
@@ -3180,7 +3663,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   });
   contentEl.appendChild(fsB13);
 
-  const fsB14 = fieldset("Блок 11. Хронические заболевания");
+  const fsB14 = fieldset("Блок 14. Хронические заболевания");
   const q141 = document.createElement("p");
   q141.className = "mh-life-edu-title";
   q141.textContent = "Вопрос 1. Есть ли хронические заболевания, требующие регулярного наблюдения?";
@@ -3224,7 +3707,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   });
   contentEl.appendChild(fsB14);
 
-  const fsB15 = fieldset("Блок 12. Аллергические реакции");
+  const fsB15 = fieldset("Блок 15. Аллергические реакции");
   const q151 = document.createElement("p");
   q151.className = "mh-life-edu-title";
   q151.textContent = "Вопрос 1. Были ли аллергические реакции?";
@@ -3298,7 +3781,7 @@ export function renderLifeStructuredStep(contentEl, answers, qIndex, stepsLen, g
   });
   contentEl.appendChild(fsB15);
 
-  const fsB16 = fieldset("Блок 13. Курение, алкоголь, ПАВ");
+  const fsB16 = fieldset("Блок 16. Курение, алкоголь, ПАВ");
   const q91 = document.createElement("p");
   q91.className = "mh-life-edu-title";
   q91.textContent = "Вопрос 1. Курите ли Вы?";
@@ -3950,6 +4433,48 @@ export function readLifeStructuredFromDom(contentEl, answers) {
   s.eduHiDone = s.eduAfterSchool === "yes" && hi?.value === "done";
   s.eduHiUndone = s.eduAfterSchool === "yes" && hi?.value === "undone";
   s.eduHiSpec = s.eduAfterSchool === "yes" && !s.eduHiNone ? valOf(contentEl, "#mh-life-edu-hi-spec") : "";
+
+  const wnow = contentEl.querySelector('input[name="mh-life-soc-work-now"]:checked');
+  s.socWorkNow = wnow && "value" in wnow ? /** @type {"" | "yes" | "no"} */ (wnow.value) : "";
+  s.socWorkPosition = s.socWorkNow === "yes" ? valOf(contentEl, "#mh-life-soc-work-position") : "";
+  s.socWorkPastPositions = valOf(contentEl, "#mh-life-soc-work-past");
+
+  const socMaritalRad = contentEl.querySelector('input[name="mh-life-soc-marital"]:checked');
+  s.socMarital =
+    socMaritalRad && "value" in socMaritalRad
+      ? /** @type {"" | "in_relationship" | "not_in_relationship" | "cohabitation" | "married" | "divorced" | "widowed"} */ (
+          socMaritalRad.value
+        )
+      : "";
+  if (s.socMarital === "divorced" || s.socMarital === "widowed") {
+    s.socMarriagesCount = valOf(contentEl, "#mh-life-soc-marriages-count");
+  } else s.socMarriagesCount = "";
+
+  const sch = contentEl.querySelector('input[name="mh-life-soc-children"]:checked');
+  s.socChildren = sch && "value" in sch ? /** @type {"" | "yes" | "no"} */ (sch.value) : "";
+  if (s.socChildren === "yes") {
+    s.socChildrenTotal = valOf(contentEl, "#mh-life-soc-children-total");
+    s.socChildrenCurrent = valOf(contentEl, "#mh-life-soc-children-current");
+    s.socChildrenPrevious = valOf(contentEl, "#mh-life-soc-children-prev");
+  } else {
+    s.socChildrenTotal = "";
+    s.socChildrenCurrent = "";
+    s.socChildrenPrevious = "";
+  }
+
+  const lv = contentEl.querySelector('input[name="mh-life-soc-live"]:checked');
+  s.socLivingWith =
+    lv && "value" in lv
+      ? /** @type {"" | "alone" | "family" | "relatives" | "roommates" | "other"} */ (lv.value)
+      : "";
+  s.socLivingOther = s.socLivingWith === "other" ? valOf(contentEl, "#mh-life-soc-live-other") : "";
+
+  const hh = contentEl.querySelector('input[name="mh-life-soc-house"]:checked');
+  s.socHousing =
+    hh && "value" in hh
+      ? /** @type {"" | "own_apt" | "house" | "rent" | "relatives_provided" | "service" | "other"} */ (hh.value)
+      : "";
+  s.socHousingOther = s.socHousing === "other" ? valOf(contentEl, "#mh-life-soc-house-other") : "";
 
   /** @type {string[]} */
   const s2dis = [];
