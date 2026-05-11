@@ -5,6 +5,11 @@
 
 import { formatComplaintsForWord, parseComplaintsString } from "./mental-help-complaints-data.js";
 import { formatLifeStructuredForWord, parseLifeStructuredString } from "./mental-help-v2-life.js";
+import {
+  DISEASE_STRUCTURED_ID,
+  formatDiseaseStructuredForWord,
+  parseDiseaseStructuredString,
+} from "./mental-help-v2-disease.js";
 
 /** @typedef {"complaints" | "disease" | "life"} MhWordKey */
 
@@ -188,6 +193,10 @@ export function buildWordBlockBody(answers, gender, steps = MH_STEPS) {
     } else if (step.id === "life-structured") {
       const state = parseLifeStructuredString(answers[step.id]);
       const line = formatLifeStructuredForWord(state, gender).trim();
+      if (line) chunks[step.wordKey].push(line);
+    } else if (step.id === DISEASE_STRUCTURED_ID) {
+      const state = parseDiseaseStructuredString(answers[step.id]);
+      const line = formatDiseaseStructuredForWord(state, gender).trim();
       if (line) chunks[step.wordKey].push(line);
     } else {
       const text = (answers[step.id] ?? "").trim();

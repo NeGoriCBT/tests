@@ -1138,7 +1138,7 @@ function section2WordLines(state) {
     if (other) diseaseBits.push(other);
   }
   if (!diseaseBits.length) {
-    lines.push("Перенесенные заболевания: Перенесенных заболеваний из списка не отмечено.");
+    lines.push("По перечисленным перенесенным заболеваниям отметок нет.");
     return lines;
   }
   lines.push(`Перенесенные заболевания: ${listWithAnd(diseaseBits)}.`);
@@ -1156,7 +1156,7 @@ function section2WordLines(state) {
 
 /** @param {Record<string, unknown>} state */
 function section3WordLines(state) {
-  if (state.operationsHad === "no") return ["Операции: Операций не было."];
+  if (state.operationsHad === "no") return ["Операций не было."];
   if (state.operationsHad !== "yes") return [];
   const raw = Array.isArray(state.operationsList) ? state.operationsList : [];
   const items = raw
@@ -1173,12 +1173,12 @@ function section3WordLines(state) {
     })
     .filter(Boolean);
   if (!items.length) return [];
-  return [`Операции: ${listWithAnd(items)}.`];
+  return [`Перенесенные операции: ${listWithAnd(items)}.`];
 }
 
 /** @param {Record<string, unknown>} state */
 function section4WordLines(state) {
-  if (state.syncopeNoTbiHad === "no") return ["Потери сознания (без ЧМТ): Потерь сознания не было."];
+  if (state.syncopeNoTbiHad === "no") return ["Потерь сознания без ЧМТ не было."];
   if (state.syncopeNoTbiHad !== "yes") return [];
   const raw = Array.isArray(state.syncopeNoTbiList) ? state.syncopeNoTbiList : [];
   const items = raw
@@ -1197,7 +1197,7 @@ function section4WordLines(state) {
 
 /** @param {Record<string, unknown>} state */
 function section5WordLines(state) {
-  if (state.tbiWithLossHad === "no") return ["ЧМТ с потерей сознания: ЧМТ с потерей сознания отрицает."];
+  if (state.tbiWithLossHad === "no") return ["ЧМТ с потерей сознания в анамнезе не отмечалось."];
   if (state.tbiWithLossHad !== "yes") return [];
   const raw = Array.isArray(state.tbiWithLossList) ? state.tbiWithLossList : [];
   const cMap = {
@@ -1238,8 +1238,8 @@ function section5WordLines(state) {
 
 /** @param {Record<string, unknown>} state */
 function section6WordLines(state) {
-  if (state.epilepsyStatus === "no") return ["Эпилепсия: Эпилепсия отрицается."];
-  if (state.epilepsyStatus === "unknown") return ["Эпилепсия: Данные об эпилепсии отсутствуют или не подтверждены."];
+  if (state.epilepsyStatus === "no") return ["Эпилепсия отрицается."];
+  if (state.epilepsyStatus === "unknown") return ["Данные об эпилепсии отсутствуют или не подтверждены."];
   if (state.epilepsyStatus !== "yes") return [];
   const first =
     state.epilepsyFirstSeizureType === "birth"
@@ -1258,7 +1258,7 @@ function section6WordLines(state) {
 
 /** @param {Record<string, unknown>} state */
 function section7WordLines(state) {
-  if (state.chronicHad === "no") return ["Хронические заболевания: Хронических заболеваний нет."];
+  if (state.chronicHad === "no") return ["Хронических заболеваний нет."];
   if (state.chronicHad !== "yes") return [];
   const d = String(state.chronicDiseasesText ?? "").trim();
   if (!d) return [];
@@ -1272,7 +1272,7 @@ function section7WordLines(state) {
 
 /** @param {Record<string, unknown>} state */
 function section8WordLines(state) {
-  if (state.allergyHad === "no") return ["Аллергические реакции: Аллергии не отмечает."];
+  if (state.allergyHad === "no") return ["Аллергических реакций не отмечено."];
   if (state.allergyHad !== "yes") return [];
   const arr = Array.isArray(state.allergyList) ? state.allergyList : [];
   const items = arr
@@ -1290,7 +1290,7 @@ function section8WordLines(state) {
 
 /** @param {Record<string, unknown>} state @param {"male" | "female" | null} gender */
 function section9WordLines(state, gender) {
-  if (state.smokingStatus === "no") return ["Курение: Не курит."];
+  if (state.smokingStatus === "no") return ["Курения нет."];
   if (state.smokingStatus === "past") {
     const y = String(state.smokingPastYears ?? "").trim();
     return [phraseSmokedPast(gender, y)];
@@ -1302,7 +1302,7 @@ function section9WordLines(state, gender) {
   const c = String(state.smokingCurrentCigs ?? "").trim();
   if (c) bits.push(c);
   if (state.smokingUsesVape === "yes") bits.push("также использует электронные сигареты/вейп/IQOS");
-  return [`Курение: ${bits.join(", ")}.`];
+  return [`${bits.join(", ")}.`];
 }
 
 /** @param {Record<string, unknown>} state */
@@ -1327,7 +1327,7 @@ function section10WordLines(state) {
     if (Number.isInteger(liters)) return `${liters} л`;
     return `${String(liters).replace(".", ",")} л`;
   };
-  if (state.alcoholStatus === "none") return ["Алкоголь: Алкоголь не употребляет."];
+  if (state.alcoholStatus === "none") return ["Алкогольные напитки не употребляет."];
   if (state.alcoholStatus === "rare") {
     const d = normalizeAlcoholPreference(state.alcoholRareDrink);
     const a = formatAlcoholAmount(state.alcoholRareAmount);
@@ -1363,7 +1363,7 @@ function section11WordLines(state, gender) {
     if (my) return `${my[1]}.${my[2]}`;
     return raw;
   };
-  if (state.pavHad === "no") return ["Употребление ПАВ: Употребление ПАВ отрицает."];
+  if (state.pavHad === "no") return ["Употребление ПАВ отрицает."];
   if (state.pavHad !== "yes") return [];
   const groupsRaw = Array.isArray(state.pavGroups) ? state.pavGroups : [];
   const groups = groupsRaw

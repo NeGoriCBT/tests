@@ -15,6 +15,7 @@ export default defineConfig({
         mentalHelp: "mental-help.html",
         mentalHelpV2: "mental-help-v2.html",
         mentalHelpLifeOnly: "mental-help-life-only.html",
+        mentalHelpDisease: "mental-help-disease.html",
       },
     },
   },
