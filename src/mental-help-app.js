@@ -12,6 +12,7 @@ import {
   DISEASE_STRUCTURED_ID,
   emptyDiseaseStructuredState,
   formatDiseaseStructuredForWord,
+  formatDiseaseStructuredWithMeta,
   parseDiseaseStructuredString,
   readDiseaseStructuredFromDom,
   renderDiseaseStructuredStep,
@@ -84,8 +85,10 @@ function syncDiseaseWordPreview() {
   const temp = { ...answers };
   readDiseaseStructuredFromDom(contentEl, temp);
   const state = parseDiseaseStructuredString(temp[DISEASE_STRUCTURED_ID]);
-  const text = formatDiseaseStructuredForWord(state, getSelectedPatientGender()).trim();
-  pre.textContent = text || "—";
+  const { text, warnings } = formatDiseaseStructuredWithMeta(state, getSelectedPatientGender());
+  const warnBlock =
+    warnings.length > 0 ? `\n\n⚠ Проверьте:\n${warnings.map((w) => `• ${w}`).join("\n")}` : "";
+  pre.textContent = (text || "—") + warnBlock;
 }
 
 if (wizardEl && (lifeWordPreviewRoot || diseaseWordPreviewRoot)) {
@@ -480,11 +483,15 @@ document.getElementById("btn-download")?.addEventListener("click", async () => {
 
   MH_WORD_SECTIONS.forEach(({ wordKey, heading }) => {
     children.push(new Paragraph({ text: heading, heading: HeadingLevel.HEADING_2 }));
-    children.push(
-      new Paragraph({
-        children: [new TextRun({ text: bodies[wordKey] || "—" })],
-      }),
-    );
+    const bodyText = bodies[wordKey] || "—";
+    const paras = bodyText === "—" ? ["—"] : bodyText.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+    for (const para of paras) {
+      children.push(
+        new Paragraph({
+          children: [new TextRun({ text: para })],
+        }),
+      );
+    }
     children.push(new Paragraph({ text: "" }));
   });
 

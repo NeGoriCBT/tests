@@ -270,6 +270,137 @@
   border-left: 2px solid var(--border);
 }
 
+.mh-early-symptoms-picker {
+  margin: 0.5rem 0 0;
+}
+
+.mh-early-symptoms-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.5rem;
+  margin-bottom: 0.5rem;
+  min-height: 0.25rem;
+}
+
+.mh-early-symptoms-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  padding: 0.28rem 0.45rem 0.28rem 0.65rem;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  border-radius: var(--radius);
+  border: 1px solid var(--border, #ccc);
+  background: var(--surface, #f5f7fa);
+}
+
+.mh-early-symptoms-chip-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mh-early-symptoms-chip-remove {
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 0.2rem;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--muted, #666);
+}
+
+.mh-early-symptoms-chip-remove:hover {
+  color: #c62828;
+}
+
+.mh-early-symptoms-input-wrap {
+  position: relative;
+  max-width: 36rem;
+}
+
+.mh-early-symptoms-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mh-early-symptoms-suggest {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  top: calc(100% + 2px);
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  max-height: 14rem;
+  overflow-y: auto;
+  border: 1px solid var(--border, #ccc);
+  border-radius: var(--radius);
+  background: var(--surface, #fff);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.mh-early-symptoms-suggest-item {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.mh-early-symptoms-suggest-item:hover,
+.mh-early-symptoms-suggest-item[aria-selected="true"] {
+  background: rgba(0, 102, 204, 0.1);
+}
+
+.mh-dis-timeline-wrap {
+  margin-top: 0.5rem;
+}
+
+.mh-dis-timeline {
+  position: relative;
+  margin: 0.25rem 0 0 0.5rem;
+  padding-left: 1.25rem;
+  border-left: 2px solid var(--border, #c5c9d0);
+}
+
+.mh-dis-timeline-event {
+  position: relative;
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border, #ddd);
+  background: var(--surface, #fafbfc);
+}
+
+.mh-dis-timeline-event::before {
+  content: "";
+  position: absolute;
+  left: -1.38rem;
+  top: 0.85rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--accent, #0066cc);
+  border: 2px solid var(--surface, #fff);
+  box-shadow: 0 0 0 1px var(--border, #c5c9d0);
+}
+
+.mh-dis-prior-scheme-drug {
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+}
+
+.mh-dis-prior-scheme-drug .mh-early-symptoms-picker {
+  margin: 0.35rem 0 0.5rem;
+  max-width: 100%;
+}
+
+.mh-dis-nested-radios {
+  margin: 0.15rem 0 0.35rem 1.5rem;
+}
+
 .mh-life-early-age-row {
   margin: 0.25rem 0 0.4rem;
   font-size: 0.9rem;

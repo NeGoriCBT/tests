@@ -1,79 +1,76 @@
 /**
- * Каталог препаратов для структурированного анамнеза заболевания (группы + молекула + примеры ТН).
- * @type {Array<{ title: string; drugs: Array<{ id: string; molecule: string; brands: string }> }>}
+ * Каталог препаратов и подсказки для анамнеза заболевания.
  */
-export const DISEASE_DRUG_CATALOG = [
-  {
-    title: "Группа 1. Антидепрессанты",
-    drugs: [
-      { id: "ad_esc", molecule: "Эсциталопрам", brands: "Ципралекс, Лексапро, Элицея, Селектра" },
-      { id: "ad_ser", molecule: "Сертралин", brands: "Золофт, Асентра, Серлифт, Торин, Стимулотон" },
-      { id: "ad_par", molecule: "Пароксетин", brands: "Паксил, Рексетин, Адепресс, Плизил" },
-      { id: "ad_fluox", molecule: "Флуоксетин", brands: "Прозак, Флуоксетин-Ланнахер, Флувал, Продеп" },
-      { id: "ad_traz", molecule: "Тразодон", brands: "Триттико, Азона, Олептро" },
-      { id: "ad_fluv", molecule: "Флувоксамин", brands: "Феварин, Лювокс" },
-      { id: "ad_ven", molecule: "Венлафаксин", brands: "Велаксин, Эфевелон, Венлаксор, Ньювелонг" },
-      { id: "ad_dul", molecule: "Дулоксетин", brands: "Симбалта, Дулоксетин-Канон, Дульта" },
-      { id: "ad_aza", molecule: "Азафен", brands: "Азафен, Пиразидол" },
-      { id: "ad_amit", molecule: "Амитриптилин", brands: "Амитриптилин, Амитриптилин-ЛекТ" },
-      { id: "ad_vald", molecule: "Агомелатин (Вальдоксан)", brands: "Вальдоксан, Агомелатин" },
-      { id: "ad_mirt", molecule: "Миртазапин", brands: "Ремерон, Миртазон, Эспритал, Миразапин" },
-      { id: "ad_bup", molecule: "Бупропион", brands: "Веллбутрин, Зибан, Воксра" },
-      { id: "ad_cit", molecule: "Циталопрам", brands: "Ципрамил, Опра, Сиотам" },
-      { id: "ad_vor", molecule: "Вортиоксетин", brands: "Бринтелликс, Тринтилликс" },
-      { id: "ad_desv", molecule: "Десвенлафаксин", brands: "Десвелаксин, Пристик" },
-    ],
-  },
-  {
-    title: "Группа 2. Анксиолитики (противотревожные, снотворные)",
-    drugs: [
-      { id: "anx_hydr", molecule: "Гидроксизин", brands: "Атаракс, Гидроксизин" },
-      { id: "anx_tof", molecule: "Тофизопам", brands: "Грандаксин" },
-      { id: "anx_etif", molecule: "Этифоксин", brands: "Стрезам" },
-      { id: "anx_phen", molecule: "Феназепам", brands: "Феназепам, Феназепам-Реневал" },
-      { id: "anx_alp", molecule: "Алпразолам", brands: "Ксанакс, Алзолам, Хелекс" },
-      { id: "anx_diaz", molecule: "Диазепам", brands: "Реланиум, Седуксен, Диазепам" },
-      { id: "anx_clon", molecule: "Клоназепам", brands: "Клонекс, Ривотрил" },
-      { id: "anx_lor", molecule: "Лоразепам", brands: "Лорафен, Мерлит" },
-      { id: "anx_brom", molecule: "Бромазепам", brands: "Лексотан, Бромазепам" },
-      { id: "anx_med", molecule: "Медазепам", brands: "Рудотель, Мезапам" },
-      { id: "anx_zop", molecule: "Зопиклон", brands: "Имован, Соннат, Зопиклон" },
-      { id: "anx_zol", molecule: "Золпидем", brands: "Санвал, Ивадал" },
-    ],
-  },
-  {
-    title: "Группа 3. Нормотимики (стабилизаторы настроения)",
-    drugs: [
-      { id: "nm_lam", molecule: "Ламотриджин", brands: "Ламиктал, Ламотриджин, Ламитра" },
-      { id: "nm_carb", molecule: "Карбамазепин", brands: "Финлепсин, Тегретол, Карбамазепин" },
-      { id: "nm_li", molecule: "Лития карбонат", brands: "Литий, Литосан, Литий-карбонат" },
-      { id: "nm_val", molecule: "Вальпроаты", brands: "Депакин, Конвулекс, Вальпроксин" },
-      { id: "nm_oxc", molecule: "Окскарбазепин", brands: "Трилептал, Окскарбазепин" },
-    ],
-  },
-  {
-    title: "Группа 4. Нейролептики (антипсихотики)",
-    drugs: [
-      { id: "ap_qu", molecule: "Кветиапин", brands: "Сероквель, Кветиапин, Квентиакс, Кетилепт" },
-      { id: "ap_ris", molecule: "Рисперидон", brands: "Рисполепт, Рисперидон, Рилептид" },
-      { id: "ap_olz", molecule: "Оланзапин", brands: "Зипрекса, Оланзапин, Эголанза" },
-      { id: "ap_ami", molecule: "Амисульприд", brands: "Солиан, Амисульприд" },
-      { id: "ap_ari", molecule: "Арипипразол", brands: "Абилифай, Арипризол, Зилаксера" },
-      { id: "ap_zuc", molecule: "Зуклопентиксол", brands: "Клопиксол" },
-      { id: "ap_flup", molecule: "Флупентиксол", brands: "Флюанксол, Флупентиксол" },
-      { id: "ap_hal", molecule: "Галоперидол", brands: "Галоперидол, Сенорм" },
-      { id: "ap_ser", molecule: "Сертиндол", brands: "Сердолект" },
-      { id: "ap_pal", molecule: "Палиперидон", brands: "Инвега, Ксеплион" },
-      { id: "ap_clo", molecule: "Клозапин", brands: "Азалептин, Лепонекс" },
-    ],
-  },
-];
+import { DISEASE_DRUG_CATALOG } from "./mental-help-disease-drugs-catalog.js";
+
+export { DISEASE_DRUG_CATALOG };
+
+/** @type {Map<string, { molecule: string; brands: string }>} */
+const drugById = new Map();
+for (const g of DISEASE_DRUG_CATALOG) {
+  for (const d of g.drugs) drugById.set(d.id, d);
+}
 
 /** @returns {string[]} */
 export function allDiseaseDrugIds() {
-  const out = [];
+  return [...drugById.keys()];
+}
+
+/** @param {string} id */
+export function drugIdToMolecule(id) {
+  return drugById.get(id)?.molecule ?? id;
+}
+
+/** @param {string} id @param {boolean} [compact] */
+export function drugIdToPickerLabel(id, compact = false) {
+  const d = drugById.get(id);
+  if (!d) return id;
+  if (compact) return d.molecule;
+  const brands = String(d.brands ?? "").trim();
+  return brands ? `${d.molecule} (${brands})` : d.molecule;
+}
+
+/** @type {Array<{ id: string; label: string; search: string }> | null} */
+let drugPickerEntriesCache = null;
+
+/** @returns {Array<{ id: string; label: string; search: string }>} */
+export function getDrugPickerEntries() {
+  if (drugPickerEntriesCache) return drugPickerEntriesCache;
+  drugPickerEntriesCache = [];
   for (const g of DISEASE_DRUG_CATALOG) {
-    for (const d of g.drugs) out.push(d.id);
+    for (const d of g.drugs) {
+      const label = drugIdToPickerLabel(d.id);
+      const search = `${d.molecule} ${d.brands}`.toLowerCase();
+      drugPickerEntriesCache.push({ id: d.id, label, search });
+    }
   }
-  return out;
+  return drugPickerEntriesCache;
+}
+
+/**
+ * @param {string} query
+ * @param {Set<string>} excludeIds
+ * @param {number} [limit]
+ */
+export function filterDrugPickerSuggestions(query, excludeIds, limit = 24) {
+  const q = String(query ?? "").trim().toLowerCase();
+  if (!q) return [];
+  return getDrugPickerEntries()
+    .filter((e) => !excludeIds.has(e.id) && e.search.includes(q))
+    .slice(0, limit)
+    .map((e) => e.label);
+}
+
+/** @param {string} label */
+export function drugLabelToId(label) {
+  const norm = String(label ?? "").trim();
+  const hit = getDrugPickerEntries().find((e) => e.label === norm || e.label.startsWith(`${norm} (`));
+  if (hit) return hit.id;
+  const byMol = getDrugPickerEntries().find((e) => drugIdToMolecule(e.id).toLowerCase() === norm.toLowerCase());
+  return byMol ? byMol.id : null;
+}
+
+/** @param {string} id */
+export function drugIdToLabel(id) {
+  return drugIdToPickerLabel(id, true);
 }
